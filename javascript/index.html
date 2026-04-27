@@ -1081,7 +1081,8 @@
         #map-confirm-overlay {
             position: fixed;
             inset: 0;
-            z-index: 20010;
+            /* Must sit above hamburger/in-game pause overlay (z-index: 50020). */
+            z-index: 50080;
             display: none;
             align-items: center;
             justify-content: center;
@@ -1929,7 +1930,8 @@
         #selection-evidence-icons {
             margin-top: 0.55rem;
             display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
+            /* Keep all evidence in a single row (now up to 7). */
+            grid-template-columns: repeat(7, minmax(0, 1fr));
             gap: 0.55rem;
         }
         .selection-evidence-icon-card {
@@ -4226,7 +4228,8 @@
         }
         #cs-evidence-list {
             display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
+            /* Jared case now has 6 evidence items (babachang added). Keep the board 1-row. */
+            grid-template-columns: repeat(6, minmax(0, 1fr));
             gap: 0.45em;
             width: 100%;
         }
@@ -5990,7 +5993,8 @@
         volume: 0.8,
         musicVolume: 0.85,
         muted: false,
-        fullscreenPreferred: false
+        fullscreenPreferred: false,
+        autoContinueDialogue: false
     };
 
     let playerName = '';
@@ -6029,6 +6033,7 @@
             // Force muted to false for "unpausable" audio
             prefs.muted = false;
             if (typeof o.fullscreenPreferred === 'boolean') prefs.fullscreenPreferred = o.fullscreenPreferred;
+            if (typeof o.autoContinueDialogue === 'boolean') prefs.autoContinueDialogue = o.autoContinueDialogue;
         } catch (e) { /* ignore */ }
     }
 
@@ -6038,7 +6043,8 @@
                 volume: prefs.volume,
                 musicVolume: prefs.musicVolume,
                 muted: false, // Always false
-                fullscreenPreferred: prefs.fullscreenPreferred
+                fullscreenPreferred: prefs.fullscreenPreferred,
+                autoContinueDialogue: prefs.autoContinueDialogue
             }));
         } catch (e) { /* ignore */ }
     }
@@ -6243,6 +6249,56 @@
         targetEl.style.setProperty('--type-dur', '0ms');
         stopTypingSfx();
         return true;
+    }
+
+    let autoDialogueTimerId = null;
+
+    function clearAutoDialogueTimer() {
+        if (autoDialogueTimerId !== null) {
+            clearTimeout(autoDialogueTimerId);
+            autoDialogueTimerId = null;
+        }
+    }
+
+    function _plainTextFromHtml(html) {
+        const temp = document.createElement('div');
+        temp.innerHTML = applyScriptTokens(html || '');
+        return String(temp.textContent || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function computeAutoContinueMsFromHtml(html) {
+        const t = _plainTextFromHtml(html);
+        const len = t.length;
+        // Faster pacing: roughly ~25 chars/sec reading + smaller base pause.
+        // (Typing animation already adds time, so this is "reading time after typing".)
+        const ms = 520 + Math.round(len * 40);
+        return Math.max(1200, Math.min(5200, ms));
+    }
+
+    // Schedules an auto-advance for the current dialogue. It accounts for typing reveal:
+    // - waits for typing to finish
+    // - then waits an additional time based on text length
+    // - then triggers advanceFn (which will move to the next line/state)
+    function scheduleAutoContinue({ enabled, textHtml, textEl, advanceFn, gateFn }) {
+        clearAutoDialogueTimer();
+        if (!enabled || typeof advanceFn !== 'function') return;
+        const typingMs = estimateTypingDurationMs(applyScriptTokens(textHtml || ''));
+        const readMs = computeAutoContinueMsFromHtml(textHtml || '');
+        const total = typingMs + readMs;
+        autoDialogueTimerId = setTimeout(() => {
+            autoDialogueTimerId = null;
+            if (typeof gateFn === 'function' && !gateFn()) return;
+            // If typing is still ongoing, first reveal it, then advance shortly after.
+            if (textEl && finishTypingNow(textEl)) {
+                autoDialogueTimerId = setTimeout(() => {
+                    autoDialogueTimerId = null;
+                    if (typeof gateFn === 'function' && !gateFn()) return;
+                    advanceFn();
+                }, 320);
+                return;
+            }
+            advanceFn();
+        }, total);
     }
 
     let caseOutroFadeToken = 0;
@@ -6760,6 +6816,17 @@
                             <div id="fsSwitch" class="switch ${prefs.fullscreenPreferred ? 'on' : ''}" role="switch" aria-checked="${prefs.fullscreenPreferred ? 'true' : 'false'}" tabindex="0"></div>
                         </div>
                     </div>
+
+                    <div class="settings-panel settings-panel--toggle">
+                        <div class="settings-panel__eyebrow">Dialogue</div>
+                        <div class="settings-panel__head">
+                            <div>
+                                <div class="settings-panel__title">Auto-Continue</div>
+                                <div class="settings-panel__desc">Automatically advances dialogue after a short reading time (based on text length).</div>
+                            </div>
+                            <div id="autoDialogueSwitch" class="switch ${prefs.autoContinueDialogue ? 'on' : ''}" role="switch" aria-checked="${prefs.autoContinueDialogue ? 'true' : 'false'}" tabindex="0"></div>
+                        </div>
+                    </div>
                 </div>
             `;
 
@@ -6806,6 +6873,13 @@
                     // ignore
                 }
                 setSwitch(fsSwitch, prefs.fullscreenPreferred);
+            });
+
+            const autoDialogueSwitch = document.getElementById('autoDialogueSwitch');
+            bindSwitch(autoDialogueSwitch, () => prefs.autoContinueDialogue, async (v) => {
+                prefs.autoContinueDialogue = v;
+                savePrefs();
+                setSwitch(autoDialogueSwitch, prefs.autoContinueDialogue);
             });
         }
 
@@ -6858,7 +6932,7 @@
         { id: 'coin_jar',                 x: 82.1,	y: 45.3,	w: 3.1,	h: 7.2,	r: 4,	image: '../images/jared-case-images/items/coin_jar.png',	correct: false },
         { id: 'baseball_cap',             x: 85.1,	y: 51.2,	w: 6.8,	h: 7.6,	r: -49,	image: '../images/jared-case-images/items/baseball_cap.png',	correct: false },
         { id: 'hanger',                   x: 28.3,	y: 90.2,	w: 9.3,	h: 7.8,	r: 19,	image: '../images/jared-case-images/items/hanger.png',	correct: false },
-        { id: 'babachang',                x: 14,	y: 3.3,	w: 13.9,	h: 22.1,	r: -3,	image: '../images/jared-case-images/items/babachang.png',	correct: false },
+        { id: 'babachang',                x: 14,	y: 3.3,	w: 13.9,	h: 22.1,	r: -3,	image: '../images/jared-case-images/items/babachang.png',	correct: true },
         { id: 'nerf_bullet',              x: 71.4,	y: 24.2,	w: 1.2,	h: 5.3,	r: 5,	image: '../images/jared-case-images/items/nerf_bullet.png',	correct: false },
         { id: 'toy_gun',                  x: 82.3,	y: 13,	w: 4.5,	h: 4.7,	r: 40,	image: '../images/jared-case-images/items/toy_gun.png',	correct: false },
         { id: 'boomerang',                x: 38.7,	y: 6.6,	w: 5.5,	h: 9.3,	image: '../images/jared-case-images/items/boomerang.png',	correct: false },
@@ -6872,6 +6946,7 @@
         { id: 'cash',                name: 'Cash',                image: '../images/jared-case-images/items/cash.png' },
         { id: 'baseball_bat',        name: 'Baseball Bat',        image: '../images/jared-case-images/items/baseball_bat.png' },
         { id: 'gloves',              name: 'Used Latex Gloves',   image: '../images/jared-case-images/items/gloves.png' },
+        { id: 'babachang',           name: 'Odd Photograph',      image: '../images/jared-case-images/items/babachang.png' }
     ];
     const CRIME_SCENE_SCRIPT = [
         { image: '../images/jared-case-images/elijahsHouse/elijahHousePoliceOutside.png', emote: 'serious', text: 'Past midnight, patrol found Elijah&apos;s house sealed as a homicide scene.' },
@@ -6910,6 +6985,12 @@
             { emote: 'serious', text: 'They tried to avoid leaving prints.' },
             { emote: 'thinking', text: 'But they still slipped up.' },
         ],
+        babachang: [
+            { emote: 'observant', text: 'Wait... this image.' },
+            { emote: 'thinking',  text: 'It\'s blurred. Deliberately obscured.' },
+            { emote: 'tense',     text: 'Someone didn\'t want this seen clearly.' },
+            { emote: 'focused',   text: 'I need to reconstruct what this actually shows.' },
+        ]
     };
 
     /* ════════════════════════════════════════════════════════════════
@@ -8018,6 +8099,8 @@
     let caseClosedOutroActive = false;
     let caseClosedOutroIdx = 0;
     let caseResultPhase = 'hidden';
+    let chrisPostMatthewActive = false;
+    let chrisPostMatthewIdx = 0;
     let caseRun = createCaseRun();
     let lastCaseSummary = null;
     const runtimeTutorialSeenByInspector = { jared: false, chris: false };
@@ -8032,10 +8115,13 @@
             wrongClicks: 0,
             wrongEvidenceClicks: 0,
             receiptPuzzleSolved: false,
+            wirePuzzleSolved: false,
+            chrisWirePuzzleSolved: false,
             receiptCardLast2: '',
             fingerprintEvidenceViewed: false,
             suspectFingerprintViews: {},
             hintsUsed: 0,
+            babachang_puzzle_solved: false,
             suspectChosen: '',
             accusedCorrectly: false,
             tutorialSkipped: false,
@@ -8324,6 +8410,7 @@
         officeActive = true;
         officeLineIdx = 0;
         currentEmoteSrc = '';
+        resetOfficeSecondaryCharacterUi();
         // Pick office scene based on active case.
         const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
         officeBg.src = activeCaseId === 'chris-case' ? CHRIS_OFFICE_BG_SRC : OFFICE_BG_SRC;
@@ -8333,6 +8420,14 @@
         officeScreen.style.display = 'block';
         _showOfficeLine();
         requestAnimationFrame(() => officeScreen.classList.add('active'));
+    }
+
+    function resetOfficeSecondaryCharacterUi() {
+        const forensicEl = document.getElementById('office-character--forensic');
+        const forensicImg = document.getElementById('office-character-forensic-img');
+        if (forensicEl) forensicEl.classList.remove('active');
+        if (forensicImg) forensicImg.src = '';
+        officeCharWrap.classList.remove('office-character--left');
     }
 
     if (officeMapBtn) {
@@ -8353,6 +8448,7 @@
 
     function hideOfficeScene(cb) {
         setUiTransitioning(true, 780);
+        clearAutoDialogueTimer();
         officeThought.classList.remove('visible');
         if (officeItemBubble) {
             officeItemBubble.classList.remove('visible');
@@ -8430,6 +8526,14 @@
         const isLast = officeLineIdx >= script.length - 1;
         const hintSpan = officeHint.querySelector('span');
         if (hintSpan) hintSpan.textContent = isLast ? 'Tap to proceed' : 'Tap to continue';
+
+        scheduleAutoContinue({
+            enabled: !!(prefs && prefs.autoContinueDialogue) && !isLast,
+            textHtml: line.text,
+            textEl: officeText,
+            advanceFn: () => advanceOffice(),
+            gateFn: () => officeActive && !postOfficeActive && !interrogationActive && !profilingActive && !caseClosedOutroActive && !chrisPostMatthewActive
+        });
     }
 
     function advanceOffice() {
@@ -8438,6 +8542,11 @@
         if (!officeActive) return;
         // If text is still "typing", first tap should just reveal it (not advance).
         if (finishTypingNow(officeText)) return;
+        clearAutoDialogueTimer();
+        if (chrisPostMatthewActive) {
+            advanceChrisPostMatthewDialogue();
+            return;
+        }
         if (interrogationActive) {
             advanceInterrogation();
             return;
@@ -8469,6 +8578,751 @@
         }
         playClickSfx();
         _showOfficeLine();
+    }
+
+    const CHRIS_POST_MATTHEW_SCRIPT = [
+        { char: 'chris', emote: 'thinking',   text: 'Hmm... I wonder what Matthew\'s card ends with.' },
+        { char: 'chris', emote: 'suspicious', text: 'Ending in 21. Same digits as the fuel receipt.' },
+        { char: 'chris', emote: 'serious',    text: 'And that rice argument... Matthew wasn\'t just embarrassed. He was angry.' },
+        { char: 'chris', emote: 'focused',    text: 'Anger like that doesn\'t come out of nowhere.' },
+        { char: 'chris', emote: 'accusing',   text: 'After what Roy said — and how angry he got — Matthew looks kinda suspicious.' },
+        { char: 'chris', emote: 'determined', text: 'I\'m filing for a search warrant. Tonight.' },
+        { char: 'chris', emote: 'final',      text: 'If there\'s anything left from that fire, it\'s in his house.' },
+    ];
+
+    function startChrisPostMatthewDialogue() {
+        chrisPostMatthewActive = true;
+        chrisPostMatthewIdx = 0;
+        officeActive = true;
+        interrogationActive = false;
+        postOfficeActive = false;
+
+        officeScreen.style.display = 'block';
+        officeBg.src = CHRIS_OFFICE_BG_SRC;
+        resetOfficeSecondaryCharacterUi();
+
+        const calmSrc = getInspectorEmoteSrc('chris', 'calm');
+        officeCharImg.src = calmSrc;
+        currentEmoteSrc = calmSrc;
+
+        _showChrisPostMatthewLine();
+        requestAnimationFrame(() => officeScreen.classList.add('active'));
+    }
+
+    function _showChrisPostMatthewLine() {
+        const line = CHRIS_POST_MATTHEW_SCRIPT[chrisPostMatthewIdx];
+        if (!line) return;
+        applyOfficeDialogueLayout(line);
+
+        officeName.textContent = getInspectorDisplayName('chris');
+        setTypedHtml(officeText, line.text);
+        const newSrc = getInspectorEmoteSrc('chris', line.emote);
+        if (newSrc !== currentEmoteSrc) playOneShotSfx(sfxWhoosh);
+        officeCharImg.src = newSrc;
+        currentEmoteSrc = newSrc;
+
+        officeThought.classList.remove('visible');
+        if (officeItemBubble) {
+            officeItemBubble.classList.remove('visible');
+            officeItemBubble.setAttribute('aria-hidden', 'true');
+        }
+
+        const isLast = chrisPostMatthewIdx >= CHRIS_POST_MATTHEW_SCRIPT.length - 1;
+        const hintSpan = officeHint.querySelector('span');
+        if (hintSpan) hintSpan.textContent = isLast ? 'Tap to proceed' : 'Tap to continue';
+    }
+
+    function advanceChrisPostMatthewDialogue() {
+        chrisPostMatthewIdx += 1;
+        if (chrisPostMatthewIdx >= CHRIS_POST_MATTHEW_SCRIPT.length) {
+            chrisPostMatthewActive = false;
+            hideOfficeScene(() => {
+                showSearchWarrantOverlay();
+            });
+            return;
+        }
+        playClickSfx();
+        _showChrisPostMatthewLine();
+    }
+
+    function showSearchWarrantOverlay() {
+        const existing = document.getElementById('search-warrant-overlay');
+        if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
+
+        const overlay = document.createElement('div');
+        overlay.id = 'search-warrant-overlay';
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.zIndex = '50060';
+        overlay.style.background = 'rgba(0,0,0,0.88)';
+        overlay.style.backdropFilter = 'blur(12px)';
+        overlay.style.display = 'grid';
+        overlay.style.placeItems = 'center';
+        overlay.style.padding = '1.4rem';
+
+        const card = document.createElement('div');
+        card.style.width = 'min(26rem, 90%)';
+        card.style.borderRadius = '18px';
+        card.style.border = '1px solid rgba(255,255,255,0.14)';
+        card.style.background = 'linear-gradient(180deg, rgba(16,21,34,0.92), rgba(8,11,20,0.94))';
+        card.style.boxShadow = '0 22px 80px rgba(0,0,0,0.62)';
+        card.style.padding = '1.6rem 1.4rem 1.3rem';
+        card.style.color = 'white';
+        card.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Arial';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.88)';
+        card.style.transition = 'transform 380ms ease, opacity 380ms ease';
+
+        const icon = document.createElement('div');
+        icon.innerHTML = '<svg width="54" height="54" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="3.8" width="14" height="16.4" rx="2.4" stroke="rgba(255,255,255,0.72)" stroke-width="1.6"/><path d="M8 8h8M8 11h8M8 14h6" stroke="rgba(255,255,255,0.55)" stroke-width="1.6" stroke-linecap="round"/></svg>';
+        icon.style.display = 'flex';
+        icon.style.justifyContent = 'center';
+        icon.style.marginBottom = '0.95rem';
+
+        const title = document.createElement('div');
+        title.textContent = 'SEARCH WARRANT';
+        title.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
+        title.style.fontWeight = '900';
+        title.style.textTransform = 'uppercase';
+        title.style.letterSpacing = '0.18em';
+        title.style.textAlign = 'center';
+        title.style.fontSize = 'clamp(1.8em, 3vw, 2.6em)';
+
+        const subtitle = document.createElement('div');
+        subtitle.textContent = 'ISSUED FOR: MATTHEW\'S RESIDENCE';
+        subtitle.style.marginTop = '0.55rem';
+        subtitle.style.textAlign = 'center';
+        subtitle.style.letterSpacing = '0.14em';
+        subtitle.style.textTransform = 'uppercase';
+        subtitle.style.fontWeight = '800';
+        subtitle.style.color = '#ffd95f';
+        subtitle.style.fontSize = '0.9rem';
+
+        const body = document.createElement('div');
+        body.textContent = 'Evidence of arson materials suspected on premises. Authorized for immediate entry and search.';
+        body.style.marginTop = '1rem';
+        body.style.color = 'rgba(255,255,255,0.68)';
+        body.style.fontSize = '0.92rem';
+        body.style.lineHeight = '1.6';
+        body.style.textAlign = 'center';
+
+        const divider = document.createElement('div');
+        divider.style.height = '1px';
+        divider.style.background = 'rgba(255,255,255,0.10)';
+        divider.style.margin = '1.25rem 0 1.1rem';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = 'Proceed to Search →';
+        btn.className = 'continue-btn';
+        btn.style.width = '100%';
+        btn.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
+        btn.style.fontWeight = '900';
+        btn.style.letterSpacing = '0.2em';
+        btn.style.textTransform = 'uppercase';
+
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            playClickSfx();
+            hideSearchWarrantOverlay(() => {
+                startMatthewHouseScene();
+            });
+        });
+
+        card.appendChild(icon);
+        card.appendChild(title);
+        card.appendChild(subtitle);
+        card.appendChild(body);
+        card.appendChild(divider);
+        card.appendChild(btn);
+        overlay.appendChild(card);
+        document.body.appendChild(overlay);
+
+        requestAnimationFrame(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'scale(1)';
+        });
+    }
+
+    function hideSearchWarrantOverlay(cb) {
+        const overlay = document.getElementById('search-warrant-overlay');
+        if (!overlay) { if (cb) cb(); return; }
+        overlay.parentElement.removeChild(overlay);
+        if (cb) cb();
+    }
+
+    let matthewHousePhase = 'main';
+    let matthewColorSequence = [];
+    let matthewRoomUnlocked = false;
+
+    const MATTHEW_HOUSE_ITEMS = [
+        { id: 'clue-paper', x: 82.5, y: 5, w: 13.4, h: 9.6, type: 'clue' },
+        { id: 'red-object-1', x: 59, y: 86.4, w: 1.2, h: 2.5, type: 'color', color: 'red' },
+        { id: 'blue-object-1', x: 98.2, y: 68, w: 1.6, h: 3.2, type: 'color', color: 'blue' },
+        { id: 'green-object', x: 2.1, y: 43.5, w: 1.2, h: 2.4, type: 'color', color: 'green' },
+        { id: 'blue-object-2', x: 66.9, y: 51.7, w: 1, h: 1.9, type: 'color', color: 'blue' },
+        { id: 'red-object-2', x: 58.8, y: 28.4, w: 1.1, h: 2, type: 'color', color: 'red' },
+        { id: 'locked-door', x: 9, y: 11.7, w: 12.2, h: 84.3, type: 'door' },
+    ];
+
+    function startMatthewHouseScene() {
+        if (!gameEl) return;
+
+        let screen = document.getElementById('matthew-house-screen');
+        if (!screen) {
+            screen = document.createElement('div');
+            screen.id = 'matthew-house-screen';
+            screen.style.position = 'absolute';
+            screen.style.inset = '0';
+            screen.style.zIndex = '22';
+            screen.style.display = 'none';
+            screen.style.opacity = '0';
+            screen.style.transition = 'opacity 0.7s ease';
+            screen.style.overflow = 'hidden';
+
+            const bg = document.createElement('img');
+            bg.id = 'matthew-house-bg';
+            bg.src = '../images/chris-case-images/matthew-house/matthewHouseInside.png';
+            bg.alt = 'Matthew house interior';
+            bg.draggable = false;
+            bg.style.position = 'absolute';
+            bg.style.inset = '0';
+            bg.style.width = '100%';
+            bg.style.height = '100%';
+            bg.style.objectFit = 'cover';
+            bg.style.pointerEvents = 'none';
+            screen.appendChild(bg);
+
+            const hitLayer = document.createElement('div');
+            hitLayer.id = 'matthew-house-hit-layer';
+            hitLayer.style.position = 'absolute';
+            hitLayer.style.inset = '0';
+            hitLayer.style.zIndex = '3';
+            screen.appendChild(hitLayer);
+
+            gameEl.appendChild(screen);
+        }
+
+        matthewHousePhase = 'main';
+        matthewColorSequence = [];
+        matthewRoomUnlocked = false;
+
+        const hitLayer = document.getElementById('matthew-house-hit-layer');
+        if (hitLayer) hitLayer.innerHTML = '';
+
+        const collected = new Set();
+        const COLOR_HEX = { red: '#e74c3c', blue: '#3498db', green: '#2ecc71' };
+        const TARGET_DIGITS = '212213';
+        const CODE_LEN = TARGET_DIGITS.length;
+        const colorToDigit = { red: '1', blue: '2', green: '3' };
+
+        // Use the existing in-game crime scene dialogue UI (with portrait) instead of custom bubbles.
+        function showBubble(msg, emote = 'focused') {
+            if (!csDialogue) return;
+            try {
+                // In Matthew's house, the crime scene screen may be hidden; ensure the dialogue is mounted
+                // inside the active 16:9 game container so feedback is visible.
+                if (gameEl && csDialogue.parentElement !== gameEl) {
+                    try { gameEl.appendChild(csDialogue); } catch (e) { /* ignore */ }
+                }
+                showCsDialogue(true);
+                csDialogue.classList.remove('cs-dialogue-right');
+                csDialogue.style.position = 'absolute';
+                csDialogue.style.left = '0';
+                csDialogue.style.right = '0';
+                csDialogue.style.bottom = 'calc(18px + env(safe-area-inset-bottom, 0px))';
+                csDialogue.style.zIndex = '50055';
+                csDialogueName.textContent = 'Chris';
+                setTypedHtml(csDialogueText, msg || '');
+                updateCsPortrait(emote || 'focused');
+                const hintSpan = csDialogueHint ? csDialogueHint.querySelector('span') : null;
+                if (hintSpan) hintSpan.textContent = 'Tap to continue';
+            } catch (e) { /* ignore */ }
+        }
+
+        function pulseDoor() {
+            const door = hitLayer ? hitLayer.querySelector('[data-item-id="locked-door"]') : null;
+            if (!door) return;
+            door.style.boxShadow = '0 0 0 2px rgba(255,220,120,0.34), 0 0 22px rgba(255,220,120,0.22)';
+            door.animate([{ opacity: 0.65 }, { opacity: 1 }, { opacity: 0.65 }], { duration: 980, iterations: 4 });
+        }
+
+        function openDoorCodeOverlay() {
+            const existing = document.getElementById('matthew-door-code-overlay');
+            if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
+
+            const ov = document.createElement('div');
+            ov.id = 'matthew-door-code-overlay';
+            ov.style.position = 'fixed';
+            ov.style.inset = '0';
+            ov.style.zIndex = '50080';
+            ov.style.background = 'rgba(0,0,0,0.82)';
+            ov.style.backdropFilter = 'blur(10px)';
+            ov.style.display = 'grid';
+            ov.style.placeItems = 'center';
+            ov.style.padding = '1.25rem';
+
+            const card = document.createElement('div');
+            card.style.width = 'min(26rem, 92vw)';
+            card.style.borderRadius = '18px';
+            card.style.border = '1px solid rgba(255,255,255,0.14)';
+            card.style.background = 'linear-gradient(180deg, rgba(16,21,34,0.92), rgba(8,11,20,0.94))';
+            card.style.boxShadow = '0 22px 80px rgba(0,0,0,0.62)';
+            card.style.padding = '1.35rem 1.2rem';
+            card.style.color = 'white';
+
+            const title = document.createElement('div');
+            title.textContent = 'LOCKED DOOR';
+            title.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
+            title.style.fontWeight = '900';
+            title.style.letterSpacing = '0.18em';
+            title.style.textTransform = 'uppercase';
+            title.style.textAlign = 'center';
+            title.style.fontSize = '1.35rem';
+
+            const hint = document.createElement('div');
+            hint.textContent = `Enter the ${CODE_LEN}-digit code.`;
+            hint.style.marginTop = '0.55rem';
+            hint.style.textAlign = 'center';
+            hint.style.color = 'rgba(255,255,255,0.6)';
+            hint.style.fontWeight = '700';
+
+            const display = document.createElement('div');
+            display.style.margin = '1.05rem auto 0.75rem';
+            display.style.width = '100%';
+            display.style.padding = '0.85rem 0.9rem';
+            display.style.borderRadius = '14px';
+            display.style.background = 'rgba(255,255,255,0.08)';
+            display.style.border = '1px solid rgba(255,255,255,0.14)';
+            display.style.textAlign = 'center';
+            display.style.letterSpacing = '0.38em';
+            display.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
+            display.style.fontWeight = '900';
+            display.style.fontSize = '1.6rem';
+
+            let entered = '';
+            const sync = () => { display.textContent = entered.padEnd(CODE_LEN, '•'); };
+            sync();
+
+            const grid = document.createElement('div');
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+            grid.style.gap = '0.6rem';
+            grid.style.marginTop = '0.75rem';
+
+            function mkBtn(label, onClick, extraStyle = {}) {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.textContent = label;
+                b.className = 'selection-confirm-btn';
+                b.style.padding = '0.9rem 0';
+                b.style.borderRadius = '14px';
+                b.style.background = 'rgba(255,255,255,0.12)';
+                b.style.border = '1px solid rgba(255,255,255,0.16)';
+                b.style.color = 'rgba(255,255,255,0.92)';
+                b.style.fontWeight = '900';
+                for (const k of Object.keys(extraStyle)) b.style[k] = extraStyle[k];
+                b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); playClickSfx(); onClick(); });
+                return b;
+            }
+
+            ['1', '2', '3'].forEach(d => {
+                grid.appendChild(mkBtn(d, () => {
+                    if (entered.length >= CODE_LEN) return;
+                    entered += d;
+                    sync();
+                }));
+            });
+
+            grid.appendChild(mkBtn('Clear', () => { entered = ''; sync(); }, { gridColumn: 'span 2' }));
+            grid.appendChild(mkBtn('Enter', () => {
+                if (entered.length !== CODE_LEN) return;
+                if (entered === TARGET_DIGITS) {
+                    matthewRoomUnlocked = true;
+                    if (ov.parentElement) ov.parentElement.removeChild(ov);
+                    showBubble('Unlocked.');
+                } else {
+                    entered = '';
+                    sync();
+                    card.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' }], { duration: 220 });
+                }
+            }, { background: 'rgba(46,204,113,0.95)', border: '1px solid rgba(0,0,0,0.25)' }));
+
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.textContent = '✕';
+            close.style.position = 'absolute';
+            close.style.right = '16px';
+            close.style.top = '12px';
+            close.style.background = 'transparent';
+            close.style.border = 'none';
+            close.style.color = 'rgba(255,255,255,0.75)';
+            close.style.fontSize = '1.25rem';
+            close.style.cursor = 'pointer';
+            close.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                playClickSfx();
+                if (ov.parentElement) ov.parentElement.removeChild(ov);
+            });
+
+            card.style.position = 'relative';
+            card.appendChild(close);
+            card.appendChild(title);
+            card.appendChild(hint);
+            card.appendChild(display);
+            card.appendChild(grid);
+            ov.appendChild(card);
+            document.body.appendChild(ov);
+        }
+
+        function renderHitboxes() {
+            if (!hitLayer) return;
+            hitLayer.innerHTML = '';
+            MATTHEW_HOUSE_ITEMS.forEach(item => {
+                const el = document.createElement('div');
+                el.dataset.itemId = item.id;
+                el.dataset.itemType = item.type;
+                el.dataset.itemColor = item.color || '';
+                el.setAttribute('data-item-id', item.id);
+                el.style.position = 'absolute';
+                el.style.left = item.x + '%';
+                el.style.top = item.y + '%';
+                el.style.width = item.w + '%';
+                el.style.height = item.h + '%';
+                el.style.borderRadius = '10px';
+                el.style.cursor = 'pointer';
+                // Invisible hitboxes (no outline)
+                el.style.background = 'transparent';
+                el.style.border = 'none';
+
+                if (item.type === 'color' && item.color) {
+                    const c = COLOR_HEX[item.color] || '#ffffff';
+                    if (!collected.has(item.id)) {
+                        el.style.boxShadow = 'none';
+                    } else {
+                        el.style.opacity = '0.3';
+                    }
+                    const check = document.createElement('div');
+                    check.textContent = '✓';
+                    check.style.position = 'absolute';
+                    check.style.right = '8px';
+                    check.style.top = '6px';
+                    check.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
+                    check.style.fontWeight = '900';
+                    check.style.color = 'rgba(255,255,255,0.9)';
+                    check.style.textShadow = '0 0 12px rgba(0,0,0,0.7)';
+                    check.style.display = collected.has(item.id) ? 'block' : 'none';
+                    el.appendChild(check);
+                    el.dataset.hasCheck = '1';
+                } else if (item.type === 'door') {
+                    if (matthewColorSequence.length >= CODE_LEN) {
+                        el.style.border = 'none';
+                        el.style.boxShadow = 'none';
+                    }
+                } else if (item.type === 'clue') {
+                    const icon = document.createElement('div');
+                    icon.style.position = 'absolute';
+                    icon.style.left = '10px';
+                    icon.style.top = '10px';
+                    icon.style.width = '24px';
+                    icon.style.height = '24px';
+                    icon.style.borderRadius = '8px';
+                    icon.style.background = 'rgba(255,255,255,0.10)';
+                    icon.style.border = '1px solid rgba(255,255,255,0.12)';
+                    icon.style.boxShadow = '0 0 16px rgba(0,0,0,0.35)';
+                    icon.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" style="display:block;margin:3px auto" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 4h7l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" stroke="rgba(255,255,255,0.6)" stroke-width="1.6"/><path d="M14 4v4h4" stroke="rgba(255,255,255,0.6)" stroke-width="1.6"/></svg>';
+                    el.appendChild(icon);
+                }
+
+                el.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    playClickSfx();
+                    if (item.type === 'color') {
+                        if (collected.has(item.id)) return;
+                        collected.add(item.id);
+                        matthewColorSequence.push(item.color);
+                        playOneShotSfx(sfxCsCorrect);
+                        const variants = ['Filed. Keep going.', 'Bagged. Next.', 'Noted. Keep moving.', 'Logged. Stay focused.'];
+                        showBubble(variants[Math.floor(Math.random() * variants.length)]);
+                        if (matthewColorSequence.length >= CODE_LEN) {
+                            showBubble('The code… I\'ve seen this pattern in the color clue.');
+                            pulseDoor();
+                        }
+                        renderHitboxes();
+                        return;
+                    }
+                    if (item.type === 'clue') {
+                        showMatthewHouseColorCodeTutorial();
+                        return;
+                    }
+                    if (item.type === 'door') {
+                        if (matthewColorSequence.length < CODE_LEN) {
+                            showBubble('Locked.');
+                            return;
+                        }
+                        if (!matthewRoomUnlocked) {
+                            openDoorCodeOverlay();
+                        } else {
+                            showBubble('Door is already open.');
+                        }
+                        return;
+                    }
+                });
+
+                hitLayer.appendChild(el);
+            });
+        }
+
+        function showMatthewHouseColorCodeTutorial() {
+            const existing = document.getElementById('matthew-code-tutorial-overlay');
+            if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
+
+            const overlay = document.createElement('div');
+            overlay.id = 'matthew-code-tutorial-overlay';
+            overlay.style.position = 'fixed';
+            overlay.style.inset = '0';
+            overlay.style.zIndex = '50070';
+            overlay.style.background = 'rgba(0,0,0,0.82)';
+            overlay.style.backdropFilter = 'blur(10px)';
+            overlay.style.display = 'grid';
+            overlay.style.placeItems = 'center';
+            overlay.style.padding = '1.25rem';
+
+            const card = document.createElement('div');
+            card.style.width = 'min(36rem, 92vw)';
+            card.style.borderRadius = '1.25rem';
+            card.style.background = 'linear-gradient(180deg, rgba(16,21,34,0.97), rgba(8,11,20,0.98))';
+            card.style.border = '1px solid rgba(255,255,255,0.12)';
+            card.style.boxShadow = '0 26px 90px rgba(0,0,0,0.65)';
+            card.style.padding = '1.25rem 1.25rem 1.1rem';
+            card.style.color = 'white';
+            card.style.position = 'relative';
+
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.textContent = '✕';
+            close.style.position = 'absolute';
+            close.style.right = '14px';
+            close.style.top = '12px';
+            close.style.background = 'transparent';
+            close.style.border = 'none';
+            close.style.color = 'rgba(255,255,255,0.75)';
+            close.style.fontSize = '1.25rem';
+            close.style.cursor = 'pointer';
+            // Note: close handler is wired later (needs closeAll()).
+
+            const kicker = document.createElement('div');
+            kicker.textContent = 'EVIDENCE FOUND';
+            kicker.style.color = '#ffd95f';
+            kicker.style.fontSize = '0.68rem';
+            kicker.style.letterSpacing = '0.22em';
+            kicker.style.fontWeight = '900';
+            kicker.style.textTransform = 'uppercase';
+            kicker.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Arial';
+
+            const title = document.createElement('div');
+            title.textContent = 'CODED MESSAGE';
+            title.style.marginTop = '0.35rem';
+            title.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
+            title.style.fontWeight = '900';
+            title.style.fontSize = '1.6rem';
+            title.style.letterSpacing = '0.12em';
+            title.style.textTransform = 'uppercase';
+
+            const sub = document.createElement('div');
+            sub.textContent = 'Found on Matthew\'s wall. Decode it.';
+            sub.style.marginTop = '0.35rem';
+            sub.style.color = 'rgba(232,240,255,0.72)';
+            sub.style.fontSize = '0.88rem';
+            sub.style.fontWeight = '650';
+
+            const svgWrap = document.createElement('div');
+            svgWrap.innerHTML = `
+<svg viewBox="0 0 560 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">
+  <defs>
+    <filter id="paperShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="rgba(0,0,0,0.55)"/>
+    </filter>
+  </defs>
+
+  <g transform="rotate(-6 280 160)" filter="url(#paperShadow)">
+    <path d="M90 38
+             Q78 44 76 56
+             L60 250
+             Q58 266 74 274
+             L470 300
+             Q486 302 494 288
+             L508 86
+             Q510 66 494 58
+             L128 34
+             Q108 32 90 38 Z"
+          fill="rgba(250,244,230,0.96)"
+          stroke="rgba(20,20,20,0.35)"
+          stroke-width="3"/>
+
+    <text x="83" y="196" font-family="Verdana, Arial" font-size="34" font-weight="800"
+          fill="rgba(20,20,20,0.85)" letter-spacing="2">CODE =</text>
+
+    <text x="244" y="198" font-family="Impact, Arial Black" font-size="46" font-weight="900"
+          letter-spacing="3"><tspan fill="#d83b3b" dx="0">21</tspan><tspan fill="#2f7fd6" dx="0">32</tspan><tspan fill="#23b35e" dx="0">13</tspan></text>
+
+    <circle cx="99" cy="142" r="15" fill="#e74c3c" stroke="rgba(0,0,0,0.35)" stroke-width="3"/>
+    <circle cx="137" cy="142" r="15" fill="#e74c3c" stroke="rgba(0,0,0,0.35)" stroke-width="3"/>
+    <circle cx="181" cy="142" r="15" fill="#3498db" stroke="rgba(0,0,0,0.35)" stroke-width="3"/>
+    <circle cx="219" cy="142" r="15" fill="#3498db" stroke="rgba(0,0,0,0.35)" stroke-width="3"/>
+    <circle cx="257" cy="142" r="15" fill="#3498db" stroke="rgba(0,0,0,0.35)" stroke-width="3"/>
+    <circle cx="301" cy="142" r="15" fill="#2ecc71" stroke="rgba(0,0,0,0.35)" stroke-width="3"/>
+
+    <text x="405" y="140" font-family="Verdana, Arial" font-size="26" font-weight="800" fill="rgba(20,20,20,0.80)">R = 1</text>
+    <text x="405" y="174" font-family="Verdana, Arial" font-size="26" font-weight="800" fill="rgba(20,20,20,0.80)">B = 2</text>
+    <text x="405" y="208" font-family="Verdana, Arial" font-size="26" font-weight="800" fill="rgba(20,20,20,0.80)">G = 3</text>
+
+    <circle cx="127" cy="310" r="9" fill="none" stroke="rgba(20,20,20,0.55)" stroke-width="3"/>
+    <path d="M145 266 Q160 258 175 266" fill="none" stroke="rgba(20,20,20,0.55)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M152 274 Q160 288 168 274" fill="none" stroke="rgba(20,20,20,0.55)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M138 288 Q160 276 182 288" fill="none" stroke="rgba(20,20,20,0.55)" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>`;
+
+            const gotIt = document.createElement('button');
+            gotIt.type = 'button';
+            gotIt.textContent = 'GOT IT — SEARCH THE ROOM';
+            gotIt.className = 'selection-confirm-btn';
+            gotIt.style.width = '100%';
+            gotIt.style.marginTop = '0.9rem';
+            gotIt.style.display = 'none';
+
+            card.appendChild(close);
+            card.appendChild(kicker);
+            card.appendChild(title);
+            card.appendChild(sub);
+            card.appendChild(svgWrap);
+            card.appendChild(gotIt);
+            overlay.appendChild(card);
+            if (gameEl) gameEl.appendChild(overlay);
+            else document.body.appendChild(overlay);
+
+            // Use the real in-game dialogue UI (with portrait) for the tutorial lines.
+            const csDialogueEl = document.getElementById('cs-dialogue');
+            const csDialoguePrev = csDialogueEl ? {
+                parent: csDialogueEl.parentElement,
+                next: csDialogueEl.nextSibling,
+                style: csDialogueEl.getAttribute('style') || '',
+                className: csDialogueEl.className || ''
+            } : null;
+
+            let idx = 0;
+            let autoId = null;
+            const lines = [
+                { emote: 'focused', text: 'Someone mapped out a code using colors.' },
+                { emote: 'thinking', text: 'Each color in this room matches a number. Find the colored objects — collect them in order.' },
+                { emote: 'firm', text: 'The sequence you collect becomes the digits. Enter that number at the locked door.' },
+                { emote: 'final', text: 'Red = 1. Blue = 2. Green = 3. Stay sharp — order matters.' },
+            ];
+
+            function restoreCsDialogue() {
+                if (!csDialogueEl || !csDialoguePrev || !csDialoguePrev.parent) return;
+                try {
+                    csDialogueEl.className = csDialoguePrev.className;
+                    csDialogueEl.setAttribute('style', csDialoguePrev.style);
+                    if (csDialoguePrev.next) csDialoguePrev.parent.insertBefore(csDialogueEl, csDialoguePrev.next);
+                    else csDialoguePrev.parent.appendChild(csDialogueEl);
+                } catch (e) { /* ignore */ }
+            }
+
+            function setLine(i) {
+                idx = i;
+                const line = lines[idx];
+                if (autoId) clearTimeout(autoId);
+                if (csDialogueEl) {
+                    try {
+                        csDialogueEl.className = csDialoguePrev ? csDialoguePrev.className : csDialogueEl.className;
+                        csDialogueEl.setAttribute(
+                            'style',
+                            (csDialoguePrev ? csDialoguePrev.style : '') +
+                            ';position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom, 0px));z-index:50080;pointer-events:auto;'
+                        );
+                        if (gameEl && csDialogueEl.parentElement !== gameEl) gameEl.appendChild(csDialogueEl);
+                        showCsDialogue(true);
+                        csDialogue.classList.remove('cs-dialogue-right');
+                        if (csDialogueName) csDialogueName.textContent = 'Chris';
+                        if (csDialogueText) setTypedHtml(csDialogueText, line.text);
+                        updateCsPortrait(line.emote || 'focused');
+                        const hintSpan = csDialogueHint ? csDialogueHint.querySelector('span') : null;
+                        if (hintSpan) hintSpan.textContent = (idx >= lines.length - 1) ? 'Tap to close' : 'Auto continue';
+                    } catch (e) { /* ignore */ }
+                }
+
+                gotIt.style.display = (idx >= lines.length - 1) ? 'inline-flex' : 'none';
+                if (idx < lines.length - 1) {
+                    autoId = setTimeout(() => setLine(idx + 1), 3000);
+                }
+            }
+
+            const onOverlayBgClick = (e) => { if (e && e.target === overlay) advance(e); };
+
+            const advance = (e) => {
+                if (e) { e.preventDefault(); e.stopPropagation(); }
+                if (csDialogueText && finishTypingNow(csDialogueText)) return;
+                if (idx >= lines.length - 1) {
+                    playClickSfx();
+                    closeAll();
+                    return;
+                }
+                playClickSfx();
+                setLine(idx + 1);
+            };
+
+            const closeAll = () => {
+                if (autoId) { clearTimeout(autoId); autoId = null; }
+                if (csDialogueEl) {
+                    try { csDialogueEl.removeEventListener('click', advance, true); } catch (e) { /* ignore */ }
+                }
+                try { overlay.removeEventListener('click', onOverlayBgClick); } catch (e) { /* ignore */ }
+                try { hideCsDialogue(true); } catch (e) { /* ignore */ }
+                restoreCsDialogue();
+                if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
+            };
+
+            close.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                playClickSfx();
+                closeAll();
+            });
+
+            gotIt.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                playClickSfx();
+                closeAll();
+            });
+
+            close.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                playClickSfx();
+                closeAll();
+            });
+
+            if (csDialogueEl) csDialogueEl.addEventListener('click', (e) => {
+                if (!overlay || !overlay.isConnected) return;
+                advance(e);
+            }, true);
+            overlay.addEventListener('click', onOverlayBgClick);
+
+            setLine(0);
+        }
+
+        renderHitboxes();
+
+        screen.style.display = 'block';
+        requestAnimationFrame(() => {
+            screen.style.opacity = '1';
+        });
     }
 
     function _setCaseResultContent(titleText, subtitleText, promptText) {
@@ -9080,6 +9934,937 @@
         closeReceiptPuzzle();
     });
 
+    function showWirePuzzle({ bgDark, bgLit, title, subtitle, onSolved }) {
+        const existing = document.getElementById('wire-puzzle-overlay');
+        if (existing) {
+            try { if (existing._wirePuzzleCleanup) existing._wirePuzzleCleanup(); } catch (e) { /* ignore */ }
+            if (existing.parentElement) existing.parentElement.removeChild(existing);
+        }
+
+        // Reuse the existing crime-scene dialogue bubble for "tap to continue" moments.
+        // We temporarily lift it above this overlay, then restore it on close.
+        const csDialogueEl = document.getElementById('cs-dialogue');
+        const csDialoguePrev = csDialogueEl ? {
+            parent: csDialogueEl.parentElement,
+            next: csDialogueEl.nextSibling,
+            style: csDialogueEl.getAttribute('style') || '',
+            className: csDialogueEl.className || ''
+        } : null;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'wire-puzzle-overlay';
+        // IMPORTANT: keep overlays inside the 16:9 game frame (do NOT cover the whole viewport).
+        // The game runs letterboxed; using fixed would overlap UI outside the game container.
+        overlay.style.position = 'absolute';
+        overlay.style.inset = '0';
+        overlay.style.zIndex = '50050';
+        overlay.style.display = 'flex';
+        overlay.style.flexDirection = 'column';
+        overlay.style.justifyContent = 'flex-start';
+        overlay.style.alignItems = 'stretch';
+        overlay.style.pointerEvents = 'auto';
+        overlay.style.userSelect = 'none';
+        overlay.style.touchAction = 'none';
+        // Fade intro/outro
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 420ms ease';
+
+        const bgWrap = document.createElement('div');
+        bgWrap.style.position = 'absolute';
+        bgWrap.style.inset = '0';
+
+        const bgDarkEl = document.createElement('div');
+        bgDarkEl.style.position = 'absolute';
+        bgDarkEl.style.inset = '0';
+        bgDarkEl.style.backgroundImage = 'url("' + bgDark + '")';
+        bgDarkEl.style.backgroundSize = 'cover';
+        bgDarkEl.style.backgroundPosition = 'center';
+        bgDarkEl.style.opacity = '1';
+
+        const bgLitEl = document.createElement('div');
+        bgLitEl.style.position = 'absolute';
+        bgLitEl.style.inset = '0';
+        bgLitEl.style.backgroundImage = 'url("' + bgLit + '")';
+        bgLitEl.style.backgroundSize = 'cover';
+        bgLitEl.style.backgroundPosition = 'center';
+        bgLitEl.style.opacity = '0';
+        bgLitEl.style.transition = 'opacity 0.8s ease';
+
+        const tint = document.createElement('div');
+        tint.style.position = 'absolute';
+        tint.style.inset = '0';
+        tint.style.background = 'rgba(0,0,0,0.72)';
+
+        bgWrap.appendChild(bgDarkEl);
+        bgWrap.appendChild(bgLitEl);
+        bgWrap.appendChild(tint);
+        overlay.appendChild(bgWrap);
+
+        // ===== AMONG US-STYLE PANEL =====
+        const area = document.createElement('div');
+        area.style.position = 'relative';
+        area.style.flex = '1';
+        area.style.display = 'grid';
+        area.style.placeItems = 'center';
+        area.style.padding = 'min(3vh, 1.4rem) min(3vw, 1.2rem) min(7vh, 2.4rem)';
+
+        const panel = document.createElement('div');
+        panel.style.width = 'min(760px, 92%)';
+        panel.style.borderRadius = '18px';
+        panel.style.border = '2px solid rgba(255,255,255,0.12)';
+        panel.style.background = 'linear-gradient(145deg, rgba(42,42,53,0.92), rgba(18,18,28,0.92))';
+        panel.style.boxShadow = '0 22px 70px rgba(0,0,0,0.70), inset 0 1px 0 rgba(255,255,255,0.10)';
+        panel.style.backdropFilter = 'blur(10px)';
+        panel.style.padding = '18px 18px 16px';
+        // Panel intro motion
+        panel.style.transform = 'translateY(12px) scale(0.985)';
+        panel.style.opacity = '0';
+        panel.style.transition = 'transform 520ms cubic-bezier(.2,.9,.2,1), opacity 520ms ease';
+
+        const panelHeader = document.createElement('div');
+        panelHeader.style.display = 'flex';
+        panelHeader.style.justifyContent = 'space-between';
+        panelHeader.style.alignItems = 'center';
+        panelHeader.style.gap = '12px';
+        panelHeader.style.paddingBottom = '12px';
+        panelHeader.style.marginBottom = '12px';
+        panelHeader.style.borderBottom = '2px solid rgba(255,255,255,0.12)';
+
+        const panelTitleWrap = document.createElement('div');
+        panelTitleWrap.style.display = 'flex';
+        panelTitleWrap.style.flexDirection = 'column';
+        panelTitleWrap.style.gap = '4px';
+
+        const panelTitle = document.createElement('div');
+        panelTitle.textContent = String(title || 'FIX WIRING').toUpperCase();
+        panelTitle.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
+        panelTitle.style.fontWeight = '900';
+        panelTitle.style.letterSpacing = '0.22em';
+        panelTitle.style.color = 'white';
+        panelTitle.style.fontSize = 'clamp(1.1rem, 2.2vw, 1.35rem)';
+
+        const panelSub = document.createElement('div');
+        panelSub.textContent = String(subtitle || 'Connect matching colored wires');
+        panelSub.style.color = 'rgba(255,255,255,0.62)';
+        panelSub.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Arial';
+        panelSub.style.fontWeight = '650';
+        panelSub.style.letterSpacing = '0.04em';
+        panelSub.style.fontSize = '0.88rem';
+
+        panelTitleWrap.appendChild(panelTitle);
+        panelTitleWrap.appendChild(panelSub);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.textContent = '✕';
+        closeBtn.setAttribute('aria-label', 'Close wiring puzzle');
+        closeBtn.style.background = 'rgba(194,59,59,0.95)';
+        closeBtn.style.color = 'white';
+        closeBtn.style.border = '1px solid rgba(255,255,255,0.14)';
+        closeBtn.style.width = '36px';
+        closeBtn.style.height = '36px';
+        closeBtn.style.borderRadius = '8px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.fontSize = '16px';
+        closeBtn.style.fontWeight = '900';
+        closeBtn.style.boxShadow = '0 10px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12)';
+        closeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            playClickSfx();
+            try { if (overlay._wirePuzzleCleanup) overlay._wirePuzzleCleanup(); } catch (err) { /* ignore */ }
+            if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
+        });
+
+        panelHeader.appendChild(panelTitleWrap);
+        panelHeader.appendChild(closeBtn);
+
+        const board = document.createElement('div');
+        board.style.position = 'relative';
+        board.style.background = 'rgba(10,10,16,0.95)';
+        board.style.border = '2px solid rgba(255,255,255,0.12)';
+        board.style.borderRadius = '12px';
+        board.style.height = 'clamp(340px, 46vh, 420px)';
+        board.style.padding = '18px 0';
+        board.style.overflow = 'hidden';
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', '100%');
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.style.position = 'absolute';
+        svg.style.inset = '0';
+        svg.style.pointerEvents = 'none';
+        svg.style.zIndex = '2';
+
+        const leftSide = document.createElement('div');
+        leftSide.style.position = 'absolute';
+        leftSide.style.left = '0';
+        leftSide.style.top = '0';
+        leftSide.style.bottom = '0';
+        leftSide.style.width = '120px';
+        leftSide.style.display = 'flex';
+        leftSide.style.flexDirection = 'column';
+        leftSide.style.justifyContent = 'space-around';
+        leftSide.style.padding = '22px 0';
+        leftSide.style.zIndex = '3';
+
+        const rightSide = document.createElement('div');
+        rightSide.style.position = 'absolute';
+        rightSide.style.right = '0';
+        rightSide.style.top = '0';
+        rightSide.style.bottom = '0';
+        rightSide.style.width = '120px';
+        rightSide.style.display = 'flex';
+        rightSide.style.flexDirection = 'column';
+        rightSide.style.justifyContent = 'space-around';
+        rightSide.style.padding = '22px 0';
+        rightSide.style.zIndex = '3';
+
+        const COLORS = [
+            { id: 'red',    hex: '#e74c3c' },
+            { id: 'blue',   hex: '#3498db' },
+            { id: 'yellow', hex: '#f1c40f' },
+            { id: 'green',  hex: '#2ecc71' },
+            { id: 'purple', hex: '#9b59b6' }
+        ];
+
+        function fisherYates(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const t = arr[i];
+                arr[i] = arr[j];
+                arr[j] = t;
+            }
+            return arr;
+        }
+
+        const rightColors = fisherYates(COLORS.slice());
+        const leftNodes = new Map();  // colorId -> nodeEl
+        const rightNodes = new Map(); // colorId -> nodeEl
+        const matched = new Map(); // colorId -> true
+
+        function makeNode(color, side) {
+            const node = document.createElement('div');
+            node.className = 'wire-node';
+            node.dataset.side = side;
+            node.dataset.colorId = color.id;
+            node.style.display = 'flex';
+            node.style.alignItems = 'center';
+            node.style.cursor = side === 'left' ? 'grab' : 'default';
+            node.style.userSelect = 'none';
+            node.style.touchAction = 'none';
+            node.style.padding = '6px 10px';
+            node.style.gap = '10px';
+
+            const stub = document.createElement('div');
+            stub.className = 'wire-stub';
+            stub.style.width = '56px';
+            stub.style.height = '14px';
+            stub.style.borderRadius = '4px';
+            stub.style.background = color.hex;
+            stub.style.boxShadow = '0 2px 4px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.20)';
+
+            const port = document.createElement('div');
+            port.className = 'wire-port';
+            port.style.width = '22px';
+            port.style.height = '22px';
+            port.style.borderRadius = '999px';
+            port.style.border = '3px solid ' + color.hex;
+            port.style.boxShadow = '0 0 14px ' + color.hex + '55';
+            port.style.background = 'rgba(0,0,0,0.45)';
+
+            const check = document.createElement('div');
+            check.textContent = '✓';
+            check.style.marginLeft = '6px';
+            check.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
+            check.style.fontWeight = '900';
+            check.style.color = 'rgba(255,255,255,0.92)';
+            check.style.textShadow = '0 0 12px rgba(0,0,0,0.7)';
+            check.style.display = 'none';
+
+            if (side === 'left') {
+                node.appendChild(stub);
+                node.appendChild(port);
+                node.appendChild(check);
+            } else {
+                node.appendChild(check);
+                node.appendChild(port);
+                node.appendChild(stub);
+            }
+
+            node._stubEl = stub;
+            node._portEl = port;
+            node._checkEl = check;
+
+            return node;
+        }
+
+        COLORS.forEach(c => {
+            const node = makeNode(c, 'left');
+            leftNodes.set(c.id, node);
+            leftSide.appendChild(node);
+        });
+        rightColors.forEach(c => {
+            const node = makeNode(c, 'right');
+            rightNodes.set(c.id, node);
+            rightSide.appendChild(node);
+        });
+
+        board.appendChild(svg);
+        board.appendChild(leftSide);
+        board.appendChild(rightSide);
+
+        panel.appendChild(panelHeader);
+        panel.appendChild(board);
+        area.appendChild(panel);
+        overlay.appendChild(area);
+
+        const flash = document.createElement('div');
+        flash.style.position = 'absolute';
+        flash.style.inset = '0';
+        flash.style.background = 'white';
+        flash.style.opacity = '0';
+        flash.style.pointerEvents = 'none';
+        flash.style.transition = 'opacity 260ms ease';
+        overlay.appendChild(flash);
+
+        let solved = false;
+        let dragging = null; // { colorId, fromX, fromY, pathEl }
+        let activePointerId = null;
+        const lockedWires = new Map(); // colorId -> { leftDot, rightDot }
+
+        const lockedGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const dragGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        svg.appendChild(lockedGroup);
+        svg.appendChild(dragGroup);
+
+        function getCenter(el) {
+            const r = el.getBoundingClientRect();
+            return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        }
+
+        function syncSvgViewBox() {
+            const r = board.getBoundingClientRect();
+            const w = Math.max(1, r.width);
+            const h = Math.max(1, r.height);
+            svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+        }
+
+        function clientToLocal(clientX, clientY) {
+            const r = board.getBoundingClientRect();
+            return { x: clientX - r.left, y: clientY - r.top };
+        }
+
+        function getAnchor(nodeEl, side) {
+            const stub = nodeEl && nodeEl._stubEl ? nodeEl._stubEl : nodeEl.querySelector('.wire-stub');
+            const boardRect = board.getBoundingClientRect();
+            const stubRect = stub.getBoundingClientRect();
+            const x = (side === 'left' ? stubRect.right : stubRect.left) - boardRect.left;
+            const y = (stubRect.top + stubRect.height / 2) - boardRect.top;
+            return { x, y };
+        }
+
+        function setPathToPoints(pathEl, x1, y1, x2, y2) {
+            const dx = Math.max(120, Math.min(520, Math.abs(x2 - x1)));
+            const c1x = x1 + (x2 > x1 ? dx * 0.55 : -dx * 0.55);
+            const c2x = x2 - (x2 > x1 ? dx * 0.55 : -dx * 0.55);
+            const d = `M ${x1} ${y1} C ${c1x} ${y1}, ${c2x} ${y2}, ${x2} ${y2}`;
+            pathEl.setAttribute('d', d);
+        }
+
+        function redrawLockedWires() {
+            while (lockedGroup.firstChild) lockedGroup.removeChild(lockedGroup.firstChild);
+            for (const [colorId, pair] of lockedWires.entries()) {
+                const color = COLORS.find(c => c.id === colorId);
+                if (!color || !pair || !pair.leftNode || !pair.rightNode) continue;
+                const a = getAnchor(pair.leftNode, 'left');
+                const b = getAnchor(pair.rightNode, 'right');
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke', color.hex);
+                path.setAttribute('stroke-width', '6');
+                path.setAttribute('opacity', '1');
+                path.setAttribute('stroke-linecap', 'round');
+                path.setAttribute('stroke-linejoin', 'round');
+                path.style.filter = 'drop-shadow(0 0 10px ' + color.hex + ')';
+                setPathToPoints(path, a.x, a.y, b.x, b.y);
+                lockedGroup.appendChild(path);
+            }
+        }
+
+        function onSolvedInternal() {
+            if (solved) return;
+            solved = true;
+            playOneShotSfx(sfxCsCorrect);
+
+            flash.style.opacity = '1';
+            setTimeout(() => { flash.style.opacity = '0'; }, 160);
+            setTimeout(() => { /* end */ }, 600);
+
+            bgLitEl.style.opacity = '1';
+
+            const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
+            if (activeCaseId === 'chris-case') {
+                setTimeout(() => {
+                    try { if (overlay._wirePuzzleCleanup) overlay._wirePuzzleCleanup(); } catch (e) { /* ignore */ }
+                    if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
+                    if (onSolved) onSolved();
+                }, 420);
+                return;
+            }
+
+            // Use existing cs dialogue bubble (compact).
+            if (csDialogueEl) {
+                try {
+                    csDialogueEl.className = csDialoguePrev ? csDialoguePrev.className : csDialogueEl.className;
+                    csDialogueEl.setAttribute(
+                        'style',
+                        (csDialoguePrev ? csDialoguePrev.style : '') +
+                        ';position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom, 0px));z-index:50055;pointer-events:auto;'
+                    );
+                    // Keep dialogue inside the same game frame for 16:9 letterboxing.
+                    if (gameEl && csDialogueEl.parentElement !== gameEl) gameEl.appendChild(csDialogueEl);
+                    showCsDialogue(true);
+                    if (csDialogueName) csDialogueName.textContent = 'Jared';
+                    if (csDialogueText) setTypedHtml(csDialogueText, 'Good. Power\'s back. Now let\'s work.');
+                    updateCsPortrait('calm');
+                    const hintSpan = csDialogueHint ? csDialogueHint.querySelector('span') : null;
+                    if (hintSpan) hintSpan.textContent = 'Tap to continue';
+                } catch (e) { /* ignore */ }
+            }
+
+            const continueHandler = (e) => {
+                if (e) { e.preventDefault(); e.stopPropagation(); }
+                const finishClose = () => {
+                    try { if (overlay._wirePuzzleCleanup) overlay._wirePuzzleCleanup(); } catch (err) { /* ignore */ }
+                    if (csDialogueEl) {
+                        try { hideCsDialogue(true); } catch (err) { /* ignore */ }
+                    }
+                    if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
+                    if (onSolved) onSolved();
+                };
+                // Fade out the puzzle overlay before leaving.
+                overlay.style.opacity = '0';
+                panel.style.opacity = '0';
+                panel.style.transform = 'translateY(10px) scale(0.985)';
+                setTimeout(finishClose, 260);
+            };
+
+            if (csDialogueEl) {
+                csDialogueEl.addEventListener('click', continueHandler, { capture: true, once: true });
+            } else {
+                overlay.addEventListener('click', continueHandler, { once: true });
+            }
+        }
+
+        function tryMatchDrop(colorId, x, y) {
+            if (matched.get(colorId) === true) return false;
+            const rightEntries = Array.from(rightNodes.entries()).filter(([id]) => matched.get(id) !== true);
+            let best = null;
+            for (const [rid, node] of rightEntries) {
+                const a = getAnchor(node, 'right');
+                const local = clientToLocal(x, y);
+                const d = Math.hypot(a.x - local.x, a.y - local.y);
+                if (!best || d < best.d) best = { rid, d, node };
+            }
+            if (!best || best.d > 44) return false;
+            if (best.rid !== colorId) return { ok: false, mismatch: true };
+            return { ok: true, rid: best.rid, rightNode: best.node };
+        }
+
+        function lockWire(colorId) {
+            const color = COLORS.find(c => c.id === colorId);
+            if (!color) return;
+            matched.set(colorId, true);
+            const l = leftNodes.get(colorId);
+            const r = rightNodes.get(colorId);
+            if (l && l._checkEl) l._checkEl.style.display = 'block';
+            if (r && r._checkEl) r._checkEl.style.display = 'block';
+            if (l && l._portEl) l._portEl.style.boxShadow = '0 0 18px ' + color.hex + '90';
+            if (r && r._portEl) r._portEl.style.boxShadow = '0 0 18px ' + color.hex + '90';
+            if (l) { l.style.cursor = 'default'; l.style.opacity = '0.96'; }
+            if (r) { r.style.opacity = '0.96'; }
+            if (l && r) lockedWires.set(colorId, { leftNode: l, rightNode: r });
+            redrawLockedWires();
+
+            if (matched.size >= 5) onSolvedInternal();
+        }
+
+        function flashWrong(colorId) {
+            const n = leftNodes.get(colorId);
+            const port = n && n._portEl;
+            if (!port) return;
+            port.style.boxShadow = '0 0 0 4px rgba(255,70,70,0.95), 0 0 18px rgba(255,70,70,0.55)';
+            setTimeout(() => {
+                const color = COLORS.find(c => c.id === colorId);
+                port.style.boxShadow = color ? ('0 0 14px ' + color.hex + '55') : '';
+            }, 240);
+        }
+
+        function startDrag(e, nodeEl) {
+            if (!nodeEl || solved) return;
+            const colorId = String(nodeEl.dataset.colorId || '');
+            if (!colorId || matched.get(colorId) === true) return;
+            activePointerId = e.pointerId;
+            try { nodeEl.setPointerCapture(activePointerId); } catch (err) { /* ignore */ }
+            syncSvgViewBox();
+            const a = getAnchor(nodeEl, 'left');
+            const p = clientToLocal(e.clientX, e.clientY);
+            const temp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const color = COLORS.find(c => c.id === colorId);
+            temp.setAttribute('fill', 'none');
+            temp.setAttribute('stroke', color ? color.hex : 'white');
+            temp.setAttribute('stroke-width', '6');
+            temp.setAttribute('opacity', '0.9');
+            temp.setAttribute('stroke-linecap', 'round');
+            temp.setAttribute('stroke-linejoin', 'round');
+            temp.style.filter = color ? ('drop-shadow(0 0 10px ' + color.hex + ')') : '';
+            dragGroup.appendChild(temp);
+            setPathToPoints(temp, a.x, a.y, p.x, p.y);
+            dragging = { colorId, fromX: a.x, fromY: a.y, pathEl: temp };
+            e.preventDefault();
+        }
+
+        // Attach pointer handlers to left nodes only.
+        for (const node of leftNodes.values()) {
+            node.addEventListener('pointerdown', (e) => startDrag(e, node));
+        }
+
+        overlay.addEventListener('pointermove', (e) => {
+            if (!dragging || solved) return;
+            if (activePointerId !== null && e.pointerId !== activePointerId) return;
+            const p = clientToLocal(e.clientX, e.clientY);
+            setPathToPoints(dragging.pathEl, dragging.fromX, dragging.fromY, p.x, p.y);
+            e.preventDefault();
+        });
+
+        overlay.addEventListener('pointerup', (e) => {
+            if (!dragging || solved) return;
+            if (activePointerId !== null && e.pointerId !== activePointerId) return;
+            const colorId = dragging.colorId;
+            const temp = dragging.pathEl;
+            dragging = null;
+            activePointerId = null;
+            if (temp && temp.parentElement) temp.parentElement.removeChild(temp);
+
+            const drop = tryMatchDrop(colorId, e.clientX, e.clientY);
+            if (!drop) return;
+            if (drop.mismatch) {
+                flashWrong(colorId);
+                return;
+            }
+            if (drop.ok) {
+                lockWire(colorId);
+            }
+        });
+
+        overlay.addEventListener('pointercancel', () => {
+            if (dragging && dragging.pathEl && dragging.pathEl.parentElement) dragging.pathEl.parentElement.removeChild(dragging.pathEl);
+            dragging = null;
+            activePointerId = null;
+        });
+
+        // Mount inside the game container so it respects the 16:9 frame.
+        if (gameEl) {
+            gameEl.appendChild(overlay);
+        } else {
+            document.body.appendChild(overlay);
+        }
+        requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
+            panel.style.opacity = '1';
+            panel.style.transform = 'translateY(0) scale(1)';
+            syncSvgViewBox();
+            redrawLockedWires();
+        });
+        const onResize = () => {
+            syncSvgViewBox();
+            redrawLockedWires();
+        };
+        window.addEventListener('resize', onResize);
+        overlay.addEventListener('transitionend', onResize);
+        const cleanup = () => {
+            window.removeEventListener('resize', onResize);
+            if (csDialogueEl && csDialoguePrev && csDialoguePrev.parent) {
+                try {
+                    csDialogueEl.className = csDialoguePrev.className;
+                    csDialogueEl.setAttribute('style', csDialoguePrev.style);
+                    if (csDialoguePrev.next) {
+                        csDialoguePrev.parent.insertBefore(csDialogueEl, csDialoguePrev.next);
+                    } else {
+                        csDialoguePrev.parent.appendChild(csDialogueEl);
+                    }
+                } catch (e) { /* ignore */ }
+            }
+        };
+        overlay._wirePuzzleCleanup = cleanup;
+    }
+
+    function showBabachangSlidePuzzle() {
+        const existing = document.getElementById('babachang-slide-overlay');
+        if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
+
+        const overlay = document.createElement('div');
+        overlay.id = 'babachang-slide-overlay';
+        overlay.style.position = 'absolute';
+        overlay.style.inset = '0';
+        overlay.style.zIndex = '50040';
+        overlay.style.background = 'rgba(0,0,0,0.88)';
+        overlay.style.backdropFilter = 'blur(8px)';
+        overlay.style.display = 'flex';
+        overlay.style.flexDirection = 'column';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'flex-start';
+        overlay.style.padding = '3.2rem 1.25rem 1.75rem';
+        overlay.style.userSelect = 'none';
+        overlay.style.touchAction = 'none';
+
+        const title = document.createElement('div');
+        title.textContent = 'RECONSTRUCT THE IMAGE';
+        title.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
+        title.style.fontWeight = '900';
+        title.style.letterSpacing = '0.22em';
+        title.style.textTransform = 'uppercase';
+        title.style.color = 'white';
+        title.style.textAlign = 'center';
+        title.style.fontSize = 'clamp(1.4rem, 3.1vw, 2.1rem)';
+
+        const sub = document.createElement('div');
+        sub.textContent = 'Slide the strips to align the photograph';
+        sub.style.marginTop = '0.55rem';
+        sub.style.color = 'rgba(255,255,255,0.55)';
+        sub.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Arial';
+        sub.style.fontWeight = '600';
+        sub.style.letterSpacing = '0.06em';
+        sub.style.fontSize = '0.92rem';
+        sub.style.textAlign = 'center';
+
+        overlay.appendChild(title);
+        overlay.appendChild(sub);
+
+        const puzzleWrap = document.createElement('div');
+        puzzleWrap.style.position = 'relative';
+        puzzleWrap.style.marginTop = '1.6rem';
+        puzzleWrap.style.width = 'min(820px, 92%)';
+        puzzleWrap.style.userSelect = 'none';
+        puzzleWrap.style.touchAction = 'none';
+
+        const stripH = 'clamp(150px, 18vw, 210px)';
+        puzzleWrap.style.display = 'flex';
+        puzzleWrap.style.flexDirection = 'column';
+        puzzleWrap.style.gap = '0.75rem';
+
+        const badge = document.createElement('div');
+        badge.textContent = 'RECONSTRUCTED ✓';
+        badge.style.position = 'absolute';
+        badge.style.left = '50%';
+        badge.style.top = '50%';
+        badge.style.transform = 'translate(-50%, -50%)';
+        badge.style.padding = '0.5em 1.2em';
+        badge.style.background = 'rgba(46,204,113,0.9)';
+        badge.style.borderRadius = '999px';
+        badge.style.color = 'white';
+        badge.style.fontWeight = '800';
+        badge.style.letterSpacing = '0.18em';
+        badge.style.textTransform = 'uppercase';
+        badge.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
+        badge.style.display = 'none';
+        badge.style.pointerEvents = 'none';
+        badge.style.boxShadow = '0 12px 40px rgba(0,0,0,0.55)';
+        puzzleWrap.appendChild(badge);
+
+        const src = '../images/jared-case-images/items/babachang-slide-full.png';
+        const target = [0, 1, 2];
+
+        function fisherYates(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const t = arr[i];
+                arr[i] = arr[j];
+                arr[j] = t;
+            }
+            return arr;
+        }
+
+        let stripOrder = fisherYates([0, 1, 2]);
+        while (stripOrder[0] === 0 && stripOrder[1] === 1 && stripOrder[2] === 2) {
+            stripOrder = fisherYates([0, 1, 2]);
+        }
+
+        let solved = false;
+        let dialogueLines = [];
+        let dialogueIdx = 0;
+
+        const footer = document.createElement('div');
+        footer.style.width = 'min(520px, 92vw)';
+        footer.style.marginTop = '1.35rem';
+        footer.style.display = 'flex';
+        footer.style.flexDirection = 'column';
+        footer.style.alignItems = 'center';
+        footer.style.gap = '0.9rem';
+
+        const continueBtn = document.createElement('button');
+        continueBtn.type = 'button';
+        continueBtn.textContent = 'Continue →';
+        continueBtn.className = 'selection-confirm-btn';
+        continueBtn.style.background = 'rgba(46,204,113,0.95)';
+        continueBtn.style.border = '1px solid rgba(0,0,0,0.25)';
+        continueBtn.style.display = 'none';
+
+        footer.appendChild(continueBtn);
+        overlay.appendChild(puzzleWrap);
+        overlay.appendChild(footer);
+        
+        // Reuse the existing crime-scene dialogue UI for Jared lines (no custom bubble).
+        const csDialogueEl = document.getElementById('cs-dialogue');
+        const csDialoguePrev = csDialogueEl ? {
+            parent: csDialogueEl.parentElement,
+            next: csDialogueEl.nextSibling,
+            style: csDialogueEl.getAttribute('style') || '',
+            className: csDialogueEl.className || ''
+        } : null;
+
+        function restoreCsDialogue() {
+            if (!csDialogueEl || !csDialoguePrev || !csDialoguePrev.parent) return;
+            try {
+                csDialogueEl.className = csDialoguePrev.className;
+                csDialogueEl.setAttribute('style', csDialoguePrev.style);
+                if (csDialoguePrev.next) csDialoguePrev.parent.insertBefore(csDialogueEl, csDialoguePrev.next);
+                else csDialoguePrev.parent.appendChild(csDialogueEl);
+            } catch (e) { /* ignore */ }
+        }
+
+        function deepEq(a, b) {
+            return a.length === b.length && a.every((v, i) => v === b[i]);
+        }
+
+        function segmentPos(segIdx) {
+            if (segIdx === 0) return '0% 0%';
+            if (segIdx === 1) return '0% 50%';
+            return '0% 100%';
+        }
+
+        // Drag-to-reorder strips (slideable)
+        let dragActive = false;
+        let dragPointerId = null;
+        let dragFromIdx = -1;
+        let dragOverIdx = -1;
+        let dragGhost = null;
+        let dragStartClientY = 0;
+
+        function checkSolved() {
+            if (solved) return;
+            if (deepEq(stripOrder, target)) {
+                solved = true;
+                playOneShotSfx(sfxCsCorrect);
+                badge.style.display = 'block';
+                continueBtn.style.display = 'inline-flex';
+            }
+        }
+
+        function render() {
+            puzzleWrap.innerHTML = '';
+            puzzleWrap.appendChild(badge);
+
+            stripOrder.forEach((seg, slotIdx) => {
+                const strip = document.createElement('div');
+                strip.dataset.slotIdx = String(slotIdx);
+                strip.style.position = 'relative';
+                strip.style.height = stripH;
+                strip.style.borderRadius = '14px';
+                strip.style.border = '1px solid rgba(255,255,255,0.12)';
+                strip.style.boxShadow = '0 18px 50px rgba(0,0,0,0.52)';
+                strip.style.backgroundImage = 'url("' + src + '")';
+                strip.style.backgroundRepeat = 'no-repeat';
+                strip.style.backgroundSize = '100% 300%';
+                strip.style.backgroundPosition = segmentPos(seg);
+                strip.style.cursor = solved ? 'default' : 'grab';
+                strip.style.touchAction = 'none';
+                strip.style.userSelect = 'none';
+                strip.style.outline = 'none';
+
+                if (!solved) {
+                    strip.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dragActive = true;
+                        dragPointerId = e.pointerId;
+                        dragFromIdx = Number(strip.dataset.slotIdx || 0);
+                        dragOverIdx = dragFromIdx;
+                        dragStartClientY = e.clientY;
+                        strip.setPointerCapture(dragPointerId);
+                        strip.style.cursor = 'grabbing';
+                        strip.style.transform = 'scale(1.01)';
+                        strip.style.boxShadow = '0 22px 70px rgba(0,0,0,0.65)';
+
+                        // Create a floating ghost so the drag feels real (and avoid DOM re-render issues mid-drag).
+                        const rect = strip.getBoundingClientRect();
+                        dragGhost = document.createElement('div');
+                        dragGhost.style.position = 'fixed';
+                        dragGhost.style.left = rect.left + 'px';
+                        dragGhost.style.top = rect.top + 'px';
+                        dragGhost.style.width = rect.width + 'px';
+                        dragGhost.style.height = rect.height + 'px';
+                        dragGhost.style.borderRadius = strip.style.borderRadius;
+                        dragGhost.style.border = strip.style.border;
+                        dragGhost.style.boxShadow = '0 26px 90px rgba(0,0,0,0.65)';
+                        dragGhost.style.backgroundImage = strip.style.backgroundImage;
+                        dragGhost.style.backgroundRepeat = strip.style.backgroundRepeat;
+                        dragGhost.style.backgroundSize = strip.style.backgroundSize;
+                        dragGhost.style.backgroundPosition = strip.style.backgroundPosition;
+                        dragGhost.style.zIndex = '50090';
+                        dragGhost.style.pointerEvents = 'none';
+                        dragGhost.style.transform = 'scale(1.02)';
+                        document.body.appendChild(dragGhost);
+                        strip.style.opacity = '0.35';
+                    });
+                }
+
+                puzzleWrap.appendChild(strip);
+            });
+
+            continueBtn.disabled = !solved;
+            checkSolved();
+        }
+
+        function slotIndexFromClientY(clientY) {
+            const r = puzzleWrap.getBoundingClientRect();
+            const h = r.height;
+            const y = Math.max(0, Math.min(h - 1, clientY - r.top));
+            const slot = Math.floor((y / h) * 3);
+            return Math.max(0, Math.min(2, slot));
+        }
+
+        function moveSegment(from, to) {
+            if (from === to) return;
+            const next = stripOrder.slice();
+            const seg = next.splice(from, 1)[0];
+            next.splice(to, 0, seg);
+            stripOrder = next;
+            playClickSfx();
+            render();
+        }
+
+        overlay.addEventListener('pointermove', (e) => {
+            if (!dragActive || solved) return;
+            if (dragPointerId !== null && e.pointerId !== dragPointerId) return;
+            const idx = slotIndexFromClientY(e.clientY);
+            dragOverIdx = idx;
+
+            // Move the ghost with the pointer.
+            if (dragGhost) {
+                const dy = e.clientY - dragStartClientY;
+                dragGhost.style.transform = 'translateY(' + dy + 'px) scale(1.02)';
+            }
+
+            // Highlight the current drop slot.
+            const strips = Array.from(puzzleWrap.children).filter(el => el !== badge);
+            strips.forEach((el, i) => {
+                el.style.outline = (i === idx) ? '2px solid rgba(46,204,113,0.55)' : 'none';
+            });
+            e.preventDefault();
+        });
+
+        overlay.addEventListener('pointerup', (e) => {
+            if (!dragActive) return;
+            if (dragPointerId !== null && e.pointerId !== dragPointerId) return;
+            // Cleanup ghost + reset visuals
+            if (dragGhost && dragGhost.parentElement) dragGhost.parentElement.removeChild(dragGhost);
+            dragGhost = null;
+            const strips = Array.from(puzzleWrap.children).filter(el => el !== badge);
+            strips.forEach(el => { el.style.outline = 'none'; el.style.opacity = ''; el.style.transform = ''; el.style.boxShadow = '0 18px 50px rgba(0,0,0,0.52)'; });
+
+            // Apply one reorder on drop.
+            if (!solved && dragFromIdx >= 0 && dragOverIdx >= 0) {
+                const from = dragFromIdx;
+                const to = dragOverIdx;
+                dragFromIdx = -1;
+                dragOverIdx = -1;
+                dragActive = false;
+                dragPointerId = null;
+                moveSegment(from, to);
+                return;
+            }
+            dragActive = false;
+            dragPointerId = null;
+            dragFromIdx = -1;
+            dragOverIdx = -1;
+            render();
+            e.preventDefault();
+        });
+
+        overlay.addEventListener('pointercancel', () => {
+            if (dragGhost && dragGhost.parentElement) dragGhost.parentElement.removeChild(dragGhost);
+            dragGhost = null;
+            dragActive = false;
+            dragPointerId = null;
+            dragFromIdx = -1;
+            dragOverIdx = -1;
+            render();
+        });
+
+        continueBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!solved) return;
+            playClickSfx();
+            continueBtn.style.display = 'none';
+
+            dialogueLines = [
+                { emote: 'thinking',  text: 'This is... not random.' },
+                { emote: 'accusing',  text: 'Someone planted this. It\'s a message.' },
+                { emote: 'firm',      text: 'File it. This changes our suspect profile entirely.' },
+            ];
+            dialogueIdx = 0;
+
+            if (csDialogueEl) {
+                try {
+                    csDialogueEl.className = csDialoguePrev ? csDialoguePrev.className : csDialogueEl.className;
+                    csDialogueEl.setAttribute(
+                        'style',
+                        (csDialoguePrev ? csDialoguePrev.style : '') +
+                        ';position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom, 0px));z-index:50055;pointer-events:auto;'
+                    );
+                    if (gameEl && csDialogueEl.parentElement !== gameEl) gameEl.appendChild(csDialogueEl);
+                    showCsDialogue(true);
+                    if (csDialogueName) csDialogueName.textContent = 'Jared';
+                    if (csDialogueText) setTypedHtml(csDialogueText, dialogueLines[0].text);
+                    updateCsPortrait(dialogueLines[0].emote || 'thinking');
+                    const hintSpan = csDialogueHint ? csDialogueHint.querySelector('span') : null;
+                    if (hintSpan) hintSpan.textContent = 'Tap to continue';
+                } catch (err) { /* ignore */ }
+            }
+        });
+
+        const onDialogueTap = (e) => {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            if (!dialogueLines.length) return;
+            // First tap finishes typing if still animating.
+            if (csDialogueText && finishTypingNow(csDialogueText)) return;
+            playClickSfx();
+            dialogueIdx += 1;
+            if (dialogueIdx >= dialogueLines.length) {
+                if (caseRun) caseRun.babachang_puzzle_solved = true;
+                try { hideCsDialogue(true); } catch (err) { /* ignore */ }
+                restoreCsDialogue();
+                if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
+                showLevelCleared();
+                return;
+            }
+            if (csDialogueText) setTypedHtml(csDialogueText, dialogueLines[dialogueIdx].text);
+            updateCsPortrait(dialogueLines[dialogueIdx].emote || 'thinking');
+        };
+
+        if (csDialogueEl) {
+            csDialogueEl.addEventListener('click', onDialogueTap, true);
+        }
+
+        render();
+        if (gameEl) gameEl.appendChild(overlay);
+        else document.body.appendChild(overlay);
+    }
+
     let csCollected = new Set();
     let csActive = false;
     let csWrongBusy = false;
@@ -9138,6 +10923,9 @@
     let postOfficeIdx = 0;
     let postOfficeActive = false;
     let csDialogPaused = false;
+    let chrisPuzzleExtraLines = [];
+    let chrisPuzzleExtraIdx = 0;
+    let chrisPuzzleExtraActive = false;
 
     function setCrimeMode(active) {
         if (!gameEl) return;
@@ -9330,7 +11118,7 @@
             displayName: 'Mikael',
             role: 'Famous Streamer',
             blood: 'A+',
-            fingerprintType: 'Radial Loop',
+            fingerprintType: 'Plain Whorl',
             portrait: SUSPECT_PATH + 'mikael.png',
             fingerprintImage: '../images/jared-case-images/fingerprints/mikael.png',
             fingerprintTitle: 'Mikael Fingerprint',
@@ -9342,7 +11130,7 @@
             displayName: 'Marvin',
             role: 'Co-worker',
             blood: 'A+',
-            fingerprintType: 'Plain Arch',
+            fingerprintType: 'Central Pocket Whorl',
             portrait: SUSPECT_PATH + 'marvin.png',
             fingerprintImage: '../images/jared-case-images/fingerprints/marvin.png',
             fingerprintTitle: 'Marvin Fingerprint',
@@ -9354,11 +11142,11 @@
             displayName: 'Kendrick',
             role: 'Online Friend',
             blood: 'B+',
-            fingerprintType: 'Plain Whorl',
+            fingerprintType: 'Radial Loop',
             portrait: SUSPECT_PATH + 'kendrick.png',
             fingerprintImage: '../images/jared-case-images/fingerprints/kendrick.png',
             fingerprintTitle: 'Kendrick Fingerprint',
-            fingerprintNote: 'Plain Whorl fingerprint pattern. Compare the circular core with the glove print.'
+            fingerprintNote: 'Radial Loop fingerprint pattern. Compare the circular core with the glove print.'
         }
     ];
     let SUSPECT_PROFILE_MAP = Object.fromEntries(SUSPECT_PROFILES.map((profile) => [profile.id, profile]));
@@ -9975,9 +11763,7 @@
         officeScreen.style.display = 'block';
         const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
         officeBg.src = activeCaseId === 'chris-case' ? CHRIS_OFFICE_BG_SRC : '../images/jared-case-images/office/jaredsOffice.png';
-        const forensicEl = document.getElementById('office-character--forensic');
-        if (forensicEl) forensicEl.classList.remove('active');
-        officeCharWrap.classList.remove('office-character--left');
+        resetOfficeSecondaryCharacterUi();
         _showPostOfficeLine();
         requestAnimationFrame(() => officeScreen.classList.add('active'));
     }
@@ -9986,6 +11772,8 @@
         { char: 'analyst', emote: 'focused', text: 'Good work. We have all the evidence from the scene.' },
         { char: 'chris', emote: 'serious', text: 'Now we turn it into something we can use.' },
         { char: 'analyst', emote: 'focused', text: 'Accelerant used: gasoline.' },
+        { char: 'analyst', emote: 'focused', text: 'Let me pull up the circuit board. Give me a moment.' },
+        { char: 'analyst', action: 'wirePuzzleChris', emote: 'focused', text: 'Check the wiring panel. Connect every circuit.' },
         { char: 'chris', emote: 'serious', text: 'So it’s arson. Intentional.' },
         { char: 'analyst', emote: 'serious', text: 'One piece is still unclear: the fuel receipt is torn up.' },
         { char: 'analyst', emote: 'focused', text: 'It’s the proof the gasoline was bought — the same gasoline used to start the fire.' },
@@ -10004,9 +11792,11 @@
     function _showPostOfficeLine() {
         const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
         const script = getPostOfficeScriptForCase(activeCaseId);
-        const line = script[postOfficeIdx];
+        const line = chrisPuzzleExtraActive
+            ? chrisPuzzleExtraLines[chrisPuzzleExtraIdx]
+            : script[postOfficeIdx];
         if (!line) return;
-        if (line.action === 'receiptPuzzle' && activeCaseId === 'chris-case' && caseRun && !caseRun.receiptPuzzleSolved) {
+        if (!chrisPuzzleExtraActive && line.action === 'receiptPuzzle' && activeCaseId === 'chris-case' && caseRun && !caseRun.receiptPuzzleSolved) {
             // Show the instruction line, then require the puzzle before continuing.
             openReceiptPuzzle();
         }
@@ -10070,15 +11860,68 @@
             officeItemBubble.setAttribute('aria-hidden', 'true');
         }
 
-        const isLast = postOfficeIdx >= script.length - 1;
+        const isLast = chrisPuzzleExtraActive
+            ? chrisPuzzleExtraIdx >= chrisPuzzleExtraLines.length - 1
+            : postOfficeIdx >= script.length - 1;
         const hintSpan = officeHint.querySelector('span');
         if (hintSpan) hintSpan.textContent = isLast ? 'Tap to proceed' : 'Tap to continue';
+
+        // Auto-continue (skip action-gated lines)
+        const isActionLine = !!(line && line.action);
+        scheduleAutoContinue({
+            enabled: !!(prefs && prefs.autoContinueDialogue) && !isLast && !isActionLine,
+            textHtml: line.text,
+            textEl: officeText,
+            advanceFn: () => advancePostOffice(),
+            gateFn: () => officeActive && postOfficeActive && !chrisPuzzleExtraActive
+        });
     }
 
     function advancePostOffice() {
         const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
         const script = getPostOfficeScriptForCase(activeCaseId);
+        if (chrisPuzzleExtraActive) {
+            playClickSfx();
+            chrisPuzzleExtraIdx += 1;
+            if (chrisPuzzleExtraIdx >= chrisPuzzleExtraLines.length) {
+                chrisPuzzleExtraActive = false;
+                chrisPuzzleExtraLines = [];
+                chrisPuzzleExtraIdx = 0;
+                // Skip the action line that triggered the puzzle.
+                postOfficeIdx += 1;
+            }
+            _showPostOfficeLine();
+            return;
+        }
+
         const current = script[postOfficeIdx];
+        clearAutoDialogueTimer();
+        if (current && current.action === 'wirePuzzleChris' && activeCaseId === 'chris-case') {
+            if (!caseRun) resetCaseRun(mapInspector || '');
+            if (!caseRun.chrisWirePuzzleSolved) {
+                showWirePuzzle({
+                    bgDark: '../images/chris-case-images/benjots/benjots-dark.png',
+                    bgLit:  '../images/chris-case-images/benjots/benjots-dark-lit.png',
+                    title: 'RESTORE CIRCUIT POWER',
+                    subtitle: 'Connect the electrical wires by color',
+                    onSolved: () => {
+                        caseRun.chrisWirePuzzleSolved = true;
+                        chrisPuzzleExtraLines = [
+                            { char: 'analyst', emote: 'focused',  text: 'Circuit is fully functional. No fault, no overload.' },
+                            { char: 'analyst', emote: 'serious',  text: 'The electricity had nothing to do with this fire.' },
+                            { char: 'chris',   emote: 'focused',  text: 'So the wiring is clean.' },
+                            { char: 'chris',   emote: 'accusing', text: 'That means someone brought the fire IN.' },
+                            { char: 'analyst', emote: 'concerned',text: 'Gasoline was used as accelerant. Introduced manually.' },
+                            { char: 'chris',   emote: 'final',    text: 'This is arson. 100%. Someone planned this.' },
+                        ];
+                        chrisPuzzleExtraIdx = 0;
+                        chrisPuzzleExtraActive = true;
+                        _showPostOfficeLine();
+                    }
+                });
+                return;
+            }
+        }
         if (current && current.action === 'receiptPuzzle' && activeCaseId === 'chris-case') {
             if (!caseRun) resetCaseRun(mapInspector || '');
             if (!(caseRun && caseRun.receiptPuzzleSolved)) {
@@ -10273,6 +12116,7 @@
         officeScreen.style.display = 'block';
         officeBg.src = '../images/jared-case-images/office/jail.png';
 
+        resetOfficeSecondaryCharacterUi();
         const forensicEl = document.getElementById('office-character--forensic');
         const forensicImg = document.getElementById('office-character-forensic-img');
         if (forensicImg) forensicImg.src = getCharacterEmoteSrc(suspectId, 'calm');
@@ -10320,14 +12164,31 @@
         const isLast = interrogationIdx >= script.length - 1;
         const hintSpan = officeHint.querySelector('span');
         if (hintSpan) hintSpan.textContent = isLast ? 'Tap to continue' : 'Tap to continue';
+
+        scheduleAutoContinue({
+            enabled: !!(prefs && prefs.autoContinueDialogue) && !isLast,
+            textHtml: line.text,
+            textEl: officeText,
+            advanceFn: () => advanceInterrogation(),
+            gateFn: () => officeActive && interrogationActive
+        });
     }
 
     function advanceInterrogation() {
         const script = INTERROGATION_SCRIPTS[interrogationSuspect];
+        clearAutoDialogueTimer();
         interrogationIdx++;
         if (interrogationIdx >= script.length) {
             interrogatedSuspects.add(interrogationSuspect);
             stopTypingSfx();
+            // Chris case: after Roy interrogation, trigger the warrant -> Matthew's house flow.
+            if (interrogationSuspect === 'roy' &&
+                (caseRun && caseRun.caseId === 'chris-case')) {
+                hideOfficeScene(() => {
+                    startChrisPostMatthewDialogue();
+                });
+                return;
+            }
             hideOfficeScene(() => {
                 interrogationActive = false;
                 // After the last interrogation, return to the lineup so the player can review evidence,
@@ -10806,7 +12667,10 @@
         csIntroAutoAdvanceId = setTimeout(() => {
             if (ingamePauseOverlay && ingamePauseOverlay.classList.contains('active')) return;
             advanceCrimeSceneIntro(false);
-        }, 4600);
+        }, (prefs && prefs.autoContinueDialogue)
+            ? (estimateTypingDurationMs(applyScriptTokens(line.text || '')) + computeAutoContinueMsFromHtml(line.text || ''))
+            : 4600
+        );
     }
 
     function advanceCrimeSceneIntro(playSound = true) {
@@ -10838,7 +12702,29 @@
             syncCsChatLock();
             csTimerPaused = true;
             updateCsObjectiveHint();
-            startCountdown();
+            if (activeCaseId === 'bad-blood') {
+                if (!caseRun) resetCaseRun(mapInspector || '');
+                if (!(caseRun && caseRun.wirePuzzleSolved)) {
+                    showWirePuzzle({
+                        bgDark: '../images/jared-case-images/elijahsHouse/elijahHouseNight.png',
+                        bgLit:  '../images/jared-case-images/elijahsHouse/elijahHouseNightLight.png',
+                        title: 'RESTORE POWER',
+                        subtitle: 'Connect the wires by matching their colors',
+                        onSolved: () => {
+                            caseRun.wirePuzzleSolved = true;
+                            csRoomImg.src = '../images/jared-case-images/elijahsHouse/elijahHouseNightButLight.png';
+                            csRoomImgFade.src = '../images/jared-case-images/elijahsHouse/elijahHouseNightButLight.png';
+                            startCountdown();
+                        }
+                    });
+                } else {
+                    csRoomImg.src = '../images/jared-case-images/elijahsHouse/elijahHouseNightButLight.png';
+                    csRoomImgFade.src = '../images/jared-case-images/elijahsHouse/elijahHouseNightButLight.png';
+                    startCountdown();
+                }
+            } else {
+                startCountdown();
+            }
             return true;
         }
         showCsIntroLine();
@@ -10866,7 +12752,10 @@
 
         csEvidenceAutoAdvanceId = setTimeout(() => {
             if (csEvidenceDialogueActive) advanceCsEvidenceDialogue(false);
-        }, 2200);
+        }, (prefs && prefs.autoContinueDialogue)
+            ? (estimateTypingDurationMs(applyScriptTokens(line.text || '')) + computeAutoContinueMsFromHtml(line.text || ''))
+            : 2200
+        );
     }
 
     function startCsEvidenceDialogue(itemId) {
@@ -10962,7 +12851,13 @@
         showCsCorrectFeedback(item);
 
         if (csCollected.size >= crimeSceneTotal) {
-            setTimeout(showLevelCleared, 1500);
+            setTimeout(() => {
+                if (caseRun && caseRun.caseId === 'bad-blood' && !caseRun.babachang_puzzle_solved) {
+                    showBabachangSlidePuzzle();
+                } else {
+                    showLevelCleared();
+                }
+            }, 1500);
         }
     }
 
