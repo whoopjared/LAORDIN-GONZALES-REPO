@@ -4454,6 +4454,174 @@
             width: 1.05em;
             height: 1.05em;
         }
+        #cs-dialogue.cs-dialogue-house.cs-dialogue-compact {
+            left: 0.85em;
+            right: auto;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 0.35em);
+            width: min(28em, calc(100% - 1.7em));
+            z-index: 40;
+        }
+        #cs-dialogue.cs-dialogue-house.cs-dialogue-compact.cs-dialogue-house-interactive {
+            pointer-events: auto;
+        }
+        #cs-dialogue.cs-dialogue-house.cs-dialogue-compact #cs-dialogue-bubble {
+            box-shadow: 0 1em 1.8em rgba(0,0,0,0.34);
+        }
+        .story-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 50080;
+            display: grid;
+            place-items: center;
+            padding: 1.4rem;
+            background: rgba(0,0,0,0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 220ms ease;
+        }
+        .story-modal.is-active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .story-modal__card {
+            width: min(28rem, 92vw);
+            border-radius: 1.15rem;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: linear-gradient(180deg, rgba(16,21,34,0.92), rgba(8,11,20,0.94));
+            box-shadow: 0 1.4rem 5rem rgba(0,0,0,0.62);
+            padding: 1.45rem 1.35rem 1.25rem;
+            color: #fff;
+            font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+            opacity: 0;
+            transform: scale(0.92);
+            transition: transform 260ms ease, opacity 260ms ease;
+        }
+        .story-modal.is-active .story-modal__card {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .story-modal__card--narrow { width: min(26rem, 92vw); }
+        .story-modal__card--wide { width: min(30rem, 92vw); }
+        .story-modal__icon {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 0.95rem;
+        }
+        .story-modal__kicker {
+            color: #ffd95f;
+            font-size: 0.68rem;
+            letter-spacing: 0.22em;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+        .story-modal__title {
+            margin-top: 0.35rem;
+            font-family: Bahnschrift, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-size: clamp(1.4rem, 2.2vw, 2rem);
+        }
+        .story-modal__title--centered,
+        .story-modal__subtitle--centered,
+        .story-modal__body--centered {
+            text-align: center;
+        }
+        .story-modal__subtitle {
+            margin-top: 0.55rem;
+            color: #ffd95f;
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+        .story-modal__body {
+            margin-top: 0.95rem;
+            color: rgba(232,240,255,0.78);
+            font-size: 0.95rem;
+            font-weight: 650;
+            line-height: 1.5;
+        }
+        .story-modal__divider {
+            height: 1px;
+            margin: 1.15rem 0 1rem;
+            background: rgba(255,255,255,0.1);
+        }
+        .story-modal__content {
+            margin-top: 0.95rem;
+        }
+        .story-modal__actions {
+            display: grid;
+            gap: 0.75rem;
+            margin-top: 1.1rem;
+        }
+        .story-modal__close {
+            position: absolute;
+            top: 0.7rem;
+            right: 0.75rem;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.76);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        .story-modal__card--closable {
+            position: relative;
+        }
+        .story-keypad__display {
+            width: 100%;
+            margin: 0 auto 0.75rem;
+            padding: 0.85rem 0.9rem;
+            border-radius: 0.9rem;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            text-align: center;
+            letter-spacing: 0.38em;
+            font-family: Bahnschrift, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+            font-weight: 900;
+            font-size: 1.6rem;
+        }
+        .story-keypad__grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.6rem;
+        }
+        .story-keypad__btn {
+            width: 100%;
+            padding: 0.9rem 0;
+            font-weight: 900;
+        }
+        .story-keypad__btn--wide {
+            grid-column: span 2;
+        }
+        .story-keypad__btn--submit {
+            background: rgba(46,204,113,0.95);
+            border: 1px solid rgba(0,0,0,0.25);
+        }
+        .case-overlay-scene {
+            position: absolute;
+            inset: 0;
+            z-index: 22;
+            display: none;
+            opacity: 0;
+            overflow: hidden;
+            transition: opacity 0.7s ease;
+        }
+        .case-overlay-scene__bg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+        .case-overlay-scene__hit-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+        }
         #cs-dialogue.cs-dialogue-right #cs-dialogue-bubble {
             padding: 2em 17em 3em 2.5em;
         }
@@ -4813,10 +4981,14 @@
             left: 0;
             right: 0;
             bottom: 0;
-            z-index: 3;
-            pointer-events: auto;
+            z-index: 9999; /* Ensure always on top */
+            pointer-events: auto !important;
             cursor: pointer;
         }
+                /* Ensure all children of #office-dialogue are interactive */
+                #office-dialogue * {
+                    pointer-events: auto !important;
+                }
         #office-dialogue-bubble {
             position: relative;
             min-height: 8.25em;
@@ -6586,20 +6758,6 @@
         return d && d !== 'none';
     }
 
-    function advanceCaseResultFromGlobal(e) {
-        if (!isCaseResultVisible()) return;
-        if (e) {
-            try { e.preventDefault(); } catch (_) {}
-            try { e.stopPropagation(); } catch (_) {}
-        }
-        advanceCaseResult();
-    }
-
-    document.addEventListener('pointerdown', advanceCaseResultFromGlobal, { passive: false, capture: true });
-    document.addEventListener('mousedown', advanceCaseResultFromGlobal, { passive: false, capture: true });
-    document.addEventListener('touchstart', advanceCaseResultFromGlobal, { passive: false, capture: true });
-    document.addEventListener('click', advanceCaseResultFromGlobal, { passive: false, capture: true });
-
     document.querySelectorAll('#inspector-select .inspector-choice').forEach((btn) => {
         btn.addEventListener('mouseenter', () => playInspectorHoverSfx());
     });
@@ -7588,6 +7746,7 @@
 
     function showMapScreen(inspector) {
         mapInspector = inspector;
+        goToScene(SCENE_NAMES.MAP);
         setCrimeMode(false);
         if (gameRoot) gameRoot.classList.remove('mode-home');
         setUiTransitioning(true, 760);
@@ -7741,6 +7900,7 @@
     let activeCaseBox = null;
 
     function showCaseBanner(box) {
+        goToScene(SCENE_NAMES.CASE_BANNER);
         setUiTransitioning(true, 860);
         bannerToOfficeTransitioning = false;
         activeCaseBox = box || activeCaseBox;
@@ -8027,7 +8187,7 @@
     ];
 
     function getOfficeScriptForCase(caseId) {
-        return caseId === 'chris-case' ? CHRIS_OFFICE_SCRIPT : OFFICE_SCRIPT;
+        return getCaseConfig(caseId).officeScript;
     }
 
     function getInspectorDisplayName(inspectorId) {
@@ -8090,7 +8250,7 @@
     ];
 
     function getCaseClosedOutroScript(caseId) {
-        return caseId === 'chris-case' ? CHRIS_CASE_CLOSED_OUTRO_SCRIPT : CASE_CLOSED_OUTRO_SCRIPT;
+        return getCaseConfig(caseId).caseClosedOutroScript;
     }
 
     let officeLineIdx = 0;
@@ -8101,10 +8261,40 @@
     let caseResultPhase = 'hidden';
     let chrisPostMatthewActive = false;
     let chrisPostMatthewIdx = 0;
+    const SCENE_NAMES = Object.freeze({
+        HOME: 'home',
+        INSPECTOR_SELECT: 'inspector-select',
+        MAP: 'map',
+        CASE_BANNER: 'case-banner',
+        OFFICE_BRIEFING: 'office-briefing',
+        CRIME_SCENE: 'crime-scene',
+        LEVEL_CLEARED: 'level-cleared',
+        POST_OFFICE: 'post-office',
+        SUSPECT_LINEUP: 'suspect-lineup',
+        SUSPECT_ACCUSATION: 'suspect-accusation',
+        INTERROGATION: 'interrogation',
+        PROFILING: 'profiling',
+        CHRIS_POST_MATTHEW: 'chris-post-matthew',
+        MATTHEW_HOUSE: 'matthew-house',
+        MATTHEW_ROOM: 'matthew-room',
+        CASE_RESULT: 'case-result',
+        CASE_CLOSED_OUTRO: 'case-closed-outro'
+    });
+    let currentScene = SCENE_NAMES.HOME;
     let caseRun = createCaseRun();
     let lastCaseSummary = null;
     const runtimeTutorialSeenByInspector = { jared: false, chris: false };
     let caseJailedShotTimeoutId = null;
+
+    function createCaseMilestones() {
+        return {
+            sceneEvidenceComplete: false,
+            forensicsComplete: false,
+            allRequiredInterviewsDone: false,
+            correctSuspectChosen: false,
+            perfectRoute: false
+        };
+    }
 
     function createCaseRun() {
         return {
@@ -8112,6 +8302,7 @@
             inspector: '',
             startedAt: Date.now(),
             evidenceFoundIds: [],
+            interrogatedSuspectIds: [],
             wrongClicks: 0,
             wrongEvidenceClicks: 0,
             receiptPuzzleSolved: false,
@@ -8126,8 +8317,35 @@
             accusedCorrectly: false,
             tutorialSkipped: false,
             investigationTime: 0,
-            timeExpired: false
+            timeExpired: false,
+            milestones: createCaseMilestones()
         };
+    }
+
+    function syncSceneFlags(scene = currentScene) {
+        officeActive = (
+            scene === SCENE_NAMES.OFFICE_BRIEFING ||
+            scene === SCENE_NAMES.POST_OFFICE ||
+            scene === SCENE_NAMES.INTERROGATION ||
+            scene === SCENE_NAMES.PROFILING ||
+            scene === SCENE_NAMES.CHRIS_POST_MATTHEW ||
+            scene === SCENE_NAMES.CASE_CLOSED_OUTRO
+        );
+        postOfficeActive = scene === SCENE_NAMES.POST_OFFICE;
+        interrogationActive = scene === SCENE_NAMES.INTERROGATION;
+        profilingActive = scene === SCENE_NAMES.PROFILING;
+        caseClosedOutroActive = scene === SCENE_NAMES.CASE_CLOSED_OUTRO;
+        chrisPostMatthewActive = scene === SCENE_NAMES.CHRIS_POST_MATTHEW;
+        csActive = scene === SCENE_NAMES.CRIME_SCENE;
+    }
+
+    function goToScene(scene, options = {}) {
+        currentScene = scene || SCENE_NAMES.HOME;
+        if (Object.prototype.hasOwnProperty.call(options, 'caseResultPhase')) {
+            caseResultPhase = options.caseResultPhase;
+        }
+        syncSceneFlags(currentScene);
+        return currentScene;
     }
 
     function clampCaseValue(value, min, max) {
@@ -8140,9 +8358,53 @@
         lastCaseSummary = null;
     }
 
+    function getActiveCaseId() {
+        return (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
+    }
+
     function getViewedSuspectFingerprintCount() {
         if (!caseRun || !caseRun.suspectFingerprintViews) return 0;
         return Object.keys(caseRun.suspectFingerprintViews).length;
+    }
+
+    function recordInterrogatedSuspect(suspectId) {
+        if (!caseRun || !suspectId) return;
+        if (!Array.isArray(caseRun.interrogatedSuspectIds)) caseRun.interrogatedSuspectIds = [];
+        if (!caseRun.interrogatedSuspectIds.includes(suspectId)) {
+            caseRun.interrogatedSuspectIds.push(suspectId);
+        }
+    }
+
+    function getInterrogatedSuspectCount(caseId) {
+        const runCount = (caseRun && Array.isArray(caseRun.interrogatedSuspectIds))
+            ? caseRun.interrogatedSuspectIds.length
+            : 0;
+        const globalCount = interrogatedSuspects instanceof Set ? interrogatedSuspects.size : 0;
+        return Math.max(runCount, globalCount);
+    }
+
+    function syncCaseMilestones(isCorrect) {
+        if (!caseRun) resetCaseRun();
+        const caseId = getActiveCaseId();
+        const config = getCaseConfig(caseId);
+        const totalEvidence = config.crimeSceneTotal;
+        const evidenceFoundCount = caseRun ? caseRun.evidenceFoundIds.length : 0;
+        const viewedPrintCount = config.hasFingerprintEvidence ? getViewedSuspectFingerprintCount() : 0;
+        const sceneEvidenceComplete = evidenceFoundCount >= totalEvidence;
+        const forensicsComplete = config.id === 'chris-case'
+            ? !!(caseRun && caseRun.chrisWirePuzzleSolved && caseRun.receiptPuzzleSolved && caseRun.receiptCardLast2)
+            : !!(caseRun && caseRun.fingerprintEvidenceViewed && viewedPrintCount >= Math.min(2, config.suspectProfiles.length));
+        const allRequiredInterviewsDone = getInterrogatedSuspectCount(caseId) >= config.suspectProfiles.length;
+        const correctSuspectChosen = !!isCorrect && !!(caseRun && caseRun.suspectChosen === config.correctSuspectId);
+        const perfectRoute = sceneEvidenceComplete && forensicsComplete && allRequiredInterviewsDone && correctSuspectChosen;
+        caseRun.milestones = {
+            sceneEvidenceComplete,
+            forensicsComplete,
+            allRequiredInterviewsDone,
+            correctSuspectChosen,
+            perfectRoute
+        };
+        return caseRun.milestones;
     }
 
     function recordCaseEvidence(id) {
@@ -8191,52 +8453,63 @@
     }
 
     function computeCaseSummary(isCorrect) {
-        const totalEvidence = crimeSceneTotal;
+        const config = getCaseConfig();
+        const totalEvidence = config.crimeSceneTotal;
         const evidenceFoundCount = caseRun ? caseRun.evidenceFoundIds.length : 0;
-        const isChrisCase = !!(caseRun && caseRun.caseId === 'chris-case');
-        const viewedPrintCount = isChrisCase ? 0 : getViewedSuspectFingerprintCount();
+        const isChrisCase = config.id === 'chris-case';
+        const viewedPrintCount = config.hasFingerprintEvidence ? getViewedSuspectFingerprintCount() : 0;
+        const milestones = syncCaseMilestones(isCorrect);
+        const interviewedCount = getInterrogatedSuspectCount(config.id);
         const wrongEvidenceClicks = caseRun ? caseRun.wrongEvidenceClicks : 0;
         const investigationTime = caseRun ? caseRun.investigationTime : 0;
-        const evidenceScore = clampCaseValue(Math.round((evidenceFoundCount / totalEvidence) * 28 + Math.max(0, 12 - wrongEvidenceClicks * 2)), 0, 40);
-        const forensicsScore = isChrisCase
-            ? clampCaseValue(
-                (caseRun && caseRun.receiptPuzzleSolved ? 14 : 0) +
-                (caseRun && caseRun.receiptCardLast2 ? 2 : 0) +
-                (caseRun && caseRun.suspectChosen ? 4 : 0),
-                0,
-                20
-            )
-            : clampCaseValue(
-                (caseRun && caseRun.fingerprintEvidenceViewed ? 7 : 0) +
-                Math.min(9, viewedPrintCount * 3) +
-                (caseRun && caseRun.suspectChosen ? 4 : 0),
-                0,
-                20
-            );
-        const interrogationScore = isCorrect ? 20 : 0;
-        const timeScore = clampCaseValue(10 - Math.floor(investigationTime / 30), 0, 10);
-        const bonusScore = clampCaseValue(
-            (wrongEvidenceClicks === 0 ? 4 : Math.max(0, 4 - wrongEvidenceClicks)) +
-            (evidenceFoundCount === totalEvidence ? 2 : 0) +
-            (isChrisCase
-                ? (caseRun && caseRun.receiptPuzzleSolved ? 2 : 0)
-                : (viewedPrintCount >= 2 ? 2 : viewedPrintCount)
-            ) +
-            (isChrisCase
-                ? (caseRun && caseRun.receiptCardLast2 ? 1 : 0)
-                : (caseRun && caseRun.fingerprintEvidenceViewed ? 1 : 0)
-            ) +
-            (caseRun && !caseRun.tutorialSkipped ? 1 : 0),
+        const evidenceScore = milestones.sceneEvidenceComplete
+            ? 40
+            : clampCaseValue(Math.round((evidenceFoundCount / Math.max(1, totalEvidence)) * 40), 0, 40);
+        const forensicsProgress = isChrisCase
+            ? ((caseRun && caseRun.chrisWirePuzzleSolved ? 7 : 0) +
+                (caseRun && caseRun.receiptPuzzleSolved ? 7 : 0) +
+                (caseRun && caseRun.receiptCardLast2 ? 6 : 0))
+            : ((caseRun && caseRun.fingerprintEvidenceViewed ? 8 : 0) +
+                Math.min(8, viewedPrintCount * 4) +
+                (caseRun && caseRun.suspectChosen ? 4 : 0));
+        const forensicsScore = milestones.forensicsComplete
+            ? 20
+            : clampCaseValue(forensicsProgress, 0, 20);
+        const interrogationProgress = clampCaseValue(
+            Math.round((interviewedCount / Math.max(1, config.suspectProfiles.length)) * 20),
             0,
-            10
+            20
         );
+        const interrogationScore = milestones.correctSuspectChosen
+            ? 20
+            : (milestones.allRequiredInterviewsDone ? Math.min(interrogationProgress, 16) : interrogationProgress);
+        const timeScore = milestones.correctSuspectChosen
+            ? 10
+            : clampCaseValue(10 - Math.floor(investigationTime / 30), 0, 10);
+        const bonusScore = milestones.perfectRoute
+            ? 10
+            : clampCaseValue(
+                (milestones.sceneEvidenceComplete ? 3 : 0) +
+                (milestones.forensicsComplete ? 3 : 0) +
+                (milestones.allRequiredInterviewsDone ? 2 : 0) +
+                (caseRun && !caseRun.tutorialSkipped ? 1 : 0) +
+                (caseRun && !caseRun.timeExpired ? 1 : 0),
+                0,
+                10
+            );
         const finalScore = clampCaseValue(evidenceScore + forensicsScore + interrogationScore + timeScore + bonusScore, 0, 100);
-        const searchAccuracy = clampCaseValue(Math.round((evidenceFoundCount / totalEvidence) * 100 - wrongEvidenceClicks * 6), 0, 100);
+        const searchAccuracy = clampCaseValue(Math.round((evidenceFoundCount / Math.max(1, totalEvidence)) * 100), 0, 100);
         const forensicsPrecision = clampCaseValue(Math.round((forensicsScore / 20) * 100), 0, 100);
-        const interrogationJudgment = isChrisCase
-            ? clampCaseValue(isCorrect ? 100 : 28 + (caseRun && caseRun.receiptPuzzleSolved ? 10 : 0) - wrongEvidenceClicks * 4, 0, isCorrect ? 100 : 60)
-            : clampCaseValue(isCorrect ? 100 : 25 + viewedPrintCount * 10 - wrongEvidenceClicks * 4, 0, isCorrect ? 100 : 60);
-        const confidence = clampCaseValue(Math.round(28 + evidenceScore * 0.78 + forensicsScore * 0.95 + interrogationScore * 0.72 + bonusScore * 0.8 - wrongEvidenceClicks * 3 - (caseRun && caseRun.timeExpired ? 18 : 0)), 0, 100);
+        const interrogationJudgment = clampCaseValue(
+            Math.round((milestones.allRequiredInterviewsDone ? 70 : 35) + (milestones.correctSuspectChosen ? 30 : 0)),
+            0,
+            100
+        );
+        const confidence = clampCaseValue(
+            Math.round(18 + evidenceScore * 0.88 + forensicsScore * 0.92 + interrogationScore * 0.78 + bonusScore * 0.8 - (caseRun && caseRun.timeExpired ? 18 : 0)),
+            0,
+            100
+        );
         return {
             caseId: caseRun ? caseRun.caseId : 'bad-blood',
             inspector: caseRun && caseRun.inspector ? caseRun.inspector : '',
@@ -8259,6 +8532,7 @@
             fingerprintViewedCount: viewedPrintCount,
             tutorialSkipped: !!(caseRun && caseRun.tutorialSkipped),
             suspectChosen: caseRun && caseRun.suspectChosen ? caseRun.suspectChosen : '',
+            milestones,
             accusedCorrectly: !!isCorrect
         };
     }
@@ -8368,6 +8642,25 @@
         return summary;
     }
 
+    function finalizeMatthewArrestCase() {
+        if (!caseRun) resetCaseRun(mapInspector || '');
+        caseRun.suspectChosen = getCorrectSuspectId();
+        return finalizeCaseSummary(true);
+    }
+
+    function hideMatthewInvestigationScreens() {
+        const houseScreen = document.getElementById('matthew-house-screen');
+        const roomScreen = document.getElementById('matthew-room-screen');
+        [houseScreen, roomScreen].forEach((screen) => {
+            if (!screen) return;
+            screen.style.opacity = '0';
+            screen.style.display = 'none';
+            screen.classList.remove('active');
+        });
+        matthewHousePhase = 'main';
+        matthewRoomUnlocked = false;
+    }
+
     function setCaseResultVisualMode(enabled) {
         if (!caseResultCard) return;
         caseResultCard.classList.toggle('is-visual', !!enabled);
@@ -8405,15 +8698,14 @@
     }
 
     function showOfficeScene() {
+        goToScene(SCENE_NAMES.OFFICE_BRIEFING);
         setCrimeMode(false);
         setUiTransitioning(true, 1080);
-        officeActive = true;
         officeLineIdx = 0;
         currentEmoteSrc = '';
         resetOfficeSecondaryCharacterUi();
-        // Pick office scene based on active case.
-        const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
-        officeBg.src = activeCaseId === 'chris-case' ? CHRIS_OFFICE_BG_SRC : OFFICE_BG_SRC;
+        const activeCaseConfig = getCaseConfig();
+        officeBg.src = activeCaseConfig.officeBgSrc;
         officeName.textContent = getInspectorDisplayName((caseRun && caseRun.inspector) ? caseRun.inspector : (mapInspector || 'jared'));
         officeThought.classList.remove('visible');
         officeScreen.classList.remove('active');
@@ -8543,23 +8835,23 @@
         // If text is still "typing", first tap should just reveal it (not advance).
         if (finishTypingNow(officeText)) return;
         clearAutoDialogueTimer();
-        if (chrisPostMatthewActive) {
+        if (currentScene === SCENE_NAMES.CHRIS_POST_MATTHEW) {
             advanceChrisPostMatthewDialogue();
             return;
         }
-        if (interrogationActive) {
+        if (currentScene === SCENE_NAMES.INTERROGATION) {
             advanceInterrogation();
             return;
         }
-        if (profilingActive) {
+        if (currentScene === SCENE_NAMES.PROFILING) {
             advanceProfiling();
             return;
         }
-        if (caseClosedOutroActive) {
+        if (currentScene === SCENE_NAMES.CASE_CLOSED_OUTRO) {
             advanceCaseClosedOutro();
             return;
         }
-        if (postOfficeActive) {
+        if (currentScene === SCENE_NAMES.POST_OFFICE) {
             advancePostOffice();
             return;
         }
@@ -8591,12 +8883,8 @@
     ];
 
     function startChrisPostMatthewDialogue() {
-        chrisPostMatthewActive = true;
+        goToScene(SCENE_NAMES.CHRIS_POST_MATTHEW);
         chrisPostMatthewIdx = 0;
-        officeActive = true;
-        interrogationActive = false;
-        postOfficeActive = false;
-
         officeScreen.style.display = 'block';
         officeBg.src = CHRIS_OFFICE_BG_SRC;
         resetOfficeSecondaryCharacterUi();
@@ -8645,7 +8933,164 @@
         _showChrisPostMatthewLine();
     }
 
-    function showSearchWarrantOverlay() {
+    function closeStoryModal(id, cb) {
+        const overlay = document.getElementById(id);
+        if (!overlay) {
+            if (cb) cb();
+            return;
+        }
+        overlay.classList.remove('is-active');
+        setTimeout(() => {
+            if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
+            if (cb) cb();
+        }, 220);
+    }
+
+    function createStoryModal(options = {}) {
+        const {
+            id,
+            size = 'medium',
+            kicker = '',
+            title = '',
+            subtitle = '',
+            body = '',
+            iconHtml = '',
+            centered = false,
+            closable = false,
+            divider = false
+        } = options;
+        const existing = id ? document.getElementById(id) : null;
+        if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
+
+        const overlay = document.createElement('div');
+        if (id) overlay.id = id;
+        overlay.className = 'story-modal';
+
+        const card = document.createElement('div');
+        card.className = 'story-modal__card' + (size === 'narrow' ? ' story-modal__card--narrow' : '') + (size === 'wide' ? ' story-modal__card--wide' : '') + (closable ? ' story-modal__card--closable' : '');
+        card.addEventListener('click', (e) => e.stopPropagation());
+
+        if (closable) {
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'story-modal__close';
+            closeBtn.textContent = 'X';
+            closeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                playClickSfx();
+                closeStoryModal(id);
+            });
+            card.appendChild(closeBtn);
+        }
+        if (iconHtml) {
+            const icon = document.createElement('div');
+            icon.className = 'story-modal__icon';
+            icon.innerHTML = iconHtml;
+            card.appendChild(icon);
+        }
+        if (kicker) {
+            const kickerEl = document.createElement('div');
+            kickerEl.className = 'story-modal__kicker';
+            kickerEl.textContent = kicker;
+            card.appendChild(kickerEl);
+        }
+        if (title) {
+            const titleEl = document.createElement('div');
+            titleEl.className = 'story-modal__title' + (centered ? ' story-modal__title--centered' : '');
+            titleEl.textContent = title;
+            card.appendChild(titleEl);
+        }
+        if (subtitle) {
+            const subtitleEl = document.createElement('div');
+            subtitleEl.className = 'story-modal__subtitle' + (centered ? ' story-modal__subtitle--centered' : '');
+            subtitleEl.textContent = subtitle;
+            card.appendChild(subtitleEl);
+        }
+        if (body) {
+            const bodyEl = document.createElement('div');
+            bodyEl.className = 'story-modal__body' + (centered ? ' story-modal__body--centered' : '');
+            bodyEl.textContent = body;
+            card.appendChild(bodyEl);
+        }
+        if (divider) {
+            const dividerEl = document.createElement('div');
+            dividerEl.className = 'story-modal__divider';
+            card.appendChild(dividerEl);
+        }
+
+        const content = document.createElement('div');
+        content.className = 'story-modal__content';
+        card.appendChild(content);
+
+        const actions = document.createElement('div');
+        actions.className = 'story-modal__actions';
+        card.appendChild(actions);
+
+        overlay.appendChild(card);
+        return { overlay, card, content, actions };
+    }
+
+    function mountStoryModal(modal) {
+        document.body.appendChild(modal.overlay);
+        requestAnimationFrame(() => modal.overlay.classList.add('is-active'));
+        return modal;
+    }
+
+    function appendStoryModalAction(modal, options = {}) {
+        if (!modal || !modal.actions) return null;
+        const {
+            label = 'Continue',
+            className = 'continue-btn',
+            onClick
+        } = options;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = className;
+        button.textContent = label;
+        button.style.width = '100%';
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            playClickSfx();
+            if (onClick) onClick(e);
+        });
+        modal.actions.appendChild(button);
+        return button;
+    }
+
+    function ensureCaseOverlayScene(options = {}) {
+        const { id, bgId, bgSrc, alt, hitLayerId } = options;
+        let screen = document.getElementById(id);
+        if (!screen) {
+            screen = document.createElement('div');
+            screen.id = id;
+            screen.className = 'case-overlay-scene';
+
+            const bg = document.createElement('img');
+            bg.id = bgId;
+            bg.className = 'case-overlay-scene__bg';
+            bg.alt = alt || '';
+            bg.draggable = false;
+            screen.appendChild(bg);
+
+            const hitLayer = document.createElement('div');
+            hitLayer.id = hitLayerId;
+            hitLayer.className = 'case-overlay-scene__hit-layer';
+            screen.appendChild(hitLayer);
+
+            gameEl.appendChild(screen);
+        }
+
+        const bg = document.getElementById(bgId);
+        if (bg) bg.src = bgSrc;
+        return {
+            screen,
+            hitLayer: document.getElementById(hitLayerId)
+        };
+    }
+
+    function legacyShowSearchWarrantOverlay() {
         const existing = document.getElementById('search-warrant-overlay');
         if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
 
@@ -8791,27 +9236,28 @@
         title.style.textTransform = 'uppercase';
 
         const body = document.createElement('div');
-        body.textContent = 'Probable cause established. Units are en route.';
+        body.textContent = 'Solid evidence ties Matthew directly to the arson. The arrest team is cleared to move.';
         body.style.marginTop = '0.65rem';
         body.style.color = 'rgba(232,240,255,0.78)';
         body.style.fontSize = '0.95rem';
         body.style.fontWeight = '650';
         body.style.lineHeight = '1.35';
 
-        const hint = document.createElement('div');
-        hint.textContent = 'Tap to continue';
-        hint.style.marginTop = '1.05rem';
-        hint.style.textAlign = 'center';
-        hint.style.color = 'rgba(255,255,255,0.55)';
-        hint.style.letterSpacing = '0.16em';
-        hint.style.textTransform = 'uppercase';
-        hint.style.fontSize = '0.72rem';
-        hint.style.fontWeight = '800';
+        const action = document.createElement('button');
+        action.type = 'button';
+        action.textContent = 'Proceed to Arrest';
+        action.className = 'continue-btn';
+        action.style.width = '100%';
+        action.style.marginTop = '1.15rem';
+        action.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
+        action.style.fontWeight = '900';
+        action.style.letterSpacing = '0.14em';
+        action.style.textTransform = 'uppercase';
 
         card.appendChild(kicker);
         card.appendChild(title);
         card.appendChild(body);
-        card.appendChild(hint);
+        card.appendChild(action);
         overlay.appendChild(card);
         document.body.appendChild(overlay);
 
@@ -8819,7 +9265,7 @@
             if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
             if (cb) cb();
         };
-        overlay.addEventListener('click', (e) => {
+        action.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             playClickSfx();
@@ -8916,8 +9362,122 @@
         if (cb) cb();
     }
 
+    function showSearchWarrantOverlay() {
+        const modal = createStoryModal({
+            id: 'search-warrant-overlay',
+            size: 'narrow',
+            title: 'SEARCH WARRANT',
+            subtitle: 'ISSUED FOR: MATTHEW\'S RESIDENCE',
+            body: 'Evidence of arson materials suspected on premises. Authorized for immediate entry and search.',
+            iconHtml: '<svg width="54" height="54" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="3.8" width="14" height="16.4" rx="2.4" stroke="rgba(255,255,255,0.72)" stroke-width="1.6"/><path d="M8 8h8M8 11h8M8 14h6" stroke="rgba(255,255,255,0.55)" stroke-width="1.6" stroke-linecap="round"/></svg>',
+            centered: true,
+            divider: true
+        });
+        appendStoryModalAction(modal, {
+            label: 'Proceed to Search',
+            onClick: () => closeStoryModal('search-warrant-overlay', () => startMatthewHouseScene())
+        });
+        mountStoryModal(modal);
+    }
+
+    function legacyShowArrestWarrantOverlay(cb) {
+        const modal = createStoryModal({
+            id: 'arrest-warrant-overlay',
+            size: 'medium',
+            kicker: 'Warrant Issued',
+            title: 'ARREST WARRANT',
+            body: 'Solid evidence ties Matthew directly to the arson. The arrest team is cleared to move.'
+        });
+        appendStoryModalAction(modal, {
+            label: 'Proceed to Arrest',
+            onClick: () => closeStoryModal('arrest-warrant-overlay', cb)
+        });
+        mountStoryModal(modal);
+    }
+
+    function legacyShowArrestedOverlay(cb) {
+        const modal = createStoryModal({
+            id: 'arrested-overlay',
+            size: 'wide',
+            title: 'SUSPECT IN CUSTODY',
+            body: 'Matthew is arrested without incident and transported for booking.'
+        });
+        appendStoryModalAction(modal, {
+            label: 'Continue',
+            onClick: () => closeStoryModal('arrested-overlay', cb)
+        });
+        mountStoryModal(modal);
+    }
+
+    function legacyHideSearchWarrantOverlay(cb) {
+        closeStoryModal('search-warrant-overlay', cb);
+    }
+
+    function openMatthewDoorCodeOverlay(options = {}) {
+        const { codeLength = 6, targetDigits = '', onSuccess } = options;
+        const modal = createStoryModal({
+            id: 'matthew-door-code-overlay',
+            size: 'narrow',
+            title: 'LOCKED DOOR',
+            body: 'Enter the ' + codeLength + '-digit code.',
+            centered: true,
+            closable: true
+        });
+
+        const display = document.createElement('div');
+        display.className = 'story-keypad__display';
+        modal.content.appendChild(display);
+
+        const grid = document.createElement('div');
+        grid.className = 'story-keypad__grid';
+        modal.content.appendChild(grid);
+
+        let entered = '';
+        const syncDisplay = () => {
+            display.textContent = entered.padEnd(codeLength, '*');
+        };
+        syncDisplay();
+
+        function addKeyButton(label, onClick, extraClassName = '') {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = label;
+            button.className = 'selection-confirm-btn story-keypad__btn' + (extraClassName ? ' ' + extraClassName : '');
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                playClickSfx();
+                onClick();
+            });
+            grid.appendChild(button);
+        }
+
+        ['1', '2', '3'].forEach((digit) => {
+            addKeyButton(digit, () => {
+                if (entered.length >= codeLength) return;
+                entered += digit;
+                syncDisplay();
+            });
+        });
+        addKeyButton('Clear', () => {
+            entered = '';
+            syncDisplay();
+        }, 'story-keypad__btn--wide');
+        addKeyButton('Enter', () => {
+            if (entered.length !== codeLength) return;
+            if (entered === targetDigits) {
+                closeStoryModal('matthew-door-code-overlay', onSuccess);
+                return;
+            }
+            entered = '';
+            syncDisplay();
+            modal.card.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' }], { duration: 220 });
+        }, 'story-keypad__btn--submit');
+
+        mountStoryModal(modal);
+    }
+
     let matthewHousePhase = 'main';
-    let matthewColorSequence = [];
     let matthewRoomUnlocked = false;
 
     const MATTHEW_HOUSE_ITEMS = [
@@ -8932,220 +9492,192 @@
 
     function startMatthewHouseScene() {
         if (!gameEl) return;
-
-        let screen = document.getElementById('matthew-house-screen');
-        if (!screen) {
-            screen = document.createElement('div');
-            screen.id = 'matthew-house-screen';
-            screen.style.position = 'absolute';
-            screen.style.inset = '0';
-            screen.style.zIndex = '22';
-            screen.style.display = 'none';
-            screen.style.opacity = '0';
-            screen.style.transition = 'opacity 0.7s ease';
-            screen.style.overflow = 'hidden';
-
-            const bg = document.createElement('img');
-            bg.id = 'matthew-house-bg';
-            bg.src = '../images/chris-case-images/matthew-house/matthewHouseInside.png';
-            bg.alt = 'Matthew house interior';
-            bg.draggable = false;
-            bg.style.position = 'absolute';
-            bg.style.inset = '0';
-            bg.style.width = '100%';
-            bg.style.height = '100%';
-            bg.style.objectFit = 'cover';
-            bg.style.pointerEvents = 'none';
-            screen.appendChild(bg);
-
-            const hitLayer = document.createElement('div');
-            hitLayer.id = 'matthew-house-hit-layer';
-            hitLayer.style.position = 'absolute';
-            hitLayer.style.inset = '0';
-            hitLayer.style.zIndex = '3';
-            screen.appendChild(hitLayer);
-
-            gameEl.appendChild(screen);
-        }
+        goToScene(SCENE_NAMES.MATTHEW_HOUSE);
+        const { screen, hitLayer } = ensureCaseOverlayScene({
+            id: 'matthew-house-screen',
+            bgId: 'matthew-house-bg',
+            bgSrc: '../images/chris-case-images/matthew-house/matthewHouseInside.png',
+            alt: 'Matthew house interior',
+            hitLayerId: 'matthew-house-hit-layer'
+        });
 
         matthewHousePhase = 'main';
-        matthewColorSequence = [];
         matthewRoomUnlocked = false;
-
-        const hitLayer = document.getElementById('matthew-house-hit-layer');
         if (hitLayer) hitLayer.innerHTML = '';
 
         const collected = new Set();
-        const COLOR_HEX = { red: '#e74c3c', blue: '#3498db', green: '#2ecc71' };
         const TARGET_DIGITS = '212213';
         const CODE_LEN = TARGET_DIGITS.length;
-        const colorToDigit = { red: '1', blue: '2', green: '3' };
         const REQUIRED_UNIQUE_FOUND = 5; // 2 red + 2 blue + 1 green (unique objects)
 
         // Use the existing in-game crime scene dialogue UI (with portrait) instead of custom bubbles.
-        function showBubble(msg, emote = 'focused') {
+        const MATTHEW_HOUSE_CHAT = {
+            name: 'Chris',
+            lines: []
+        };
+        let matthewChatLineIndex = 0;
+        let matthewChatDone = false;
+        let matthewChatActive = false;
+        let matthewChatCallback = null;
+        let matthewChatAutoHideId = null;
+        let matthewChatPassive = false;
+
+        if (csDialogue && csDialogue.__matthewChatClickHandler) {
+            csDialogue.removeEventListener('click', csDialogue.__matthewChatClickHandler, true);
+            csDialogue.__matthewChatClickHandler = null;
+        }
+
+        function clearMatthewChatAutoHide() {
+            if (matthewChatAutoHideId !== null) {
+                clearTimeout(matthewChatAutoHideId);
+                matthewChatAutoHideId = null;
+            }
+        }
+
+        function scheduleMatthewChatStep(line) {
+            clearMatthewChatAutoHide();
+            if (!matthewChatPassive) return;
+            const lineHtml = (line && typeof line === 'object') ? (line.text || '') : String(line || '');
+            const totalMs = estimateTypingDurationMs(applyScriptTokens(lineHtml)) + 880;
+            matthewChatAutoHideId = setTimeout(() => {
+                matthewChatAutoHideId = null;
+                if (!matthewChatActive || !matthewChatPassive) return;
+                if (matthewChatDone) {
+                    finishMatthewChat();
+                    return;
+                }
+                matthewChatLineIndex += 1;
+                _showMatthewChatLine();
+            }, totalMs);
+        }
+
+        function _showMatthewChatLine() {
             if (!csDialogue) return;
+            const chat = MATTHEW_HOUSE_CHAT;
+            if (!chat || !chat.lines) return;
+            
+            const line = chat.lines[matthewChatLineIndex] || '';
+            if (!line) return;
+            
             try {
-                // In Matthew's house, the crime scene screen may be hidden; ensure the dialogue is mounted
-                // inside the active 16:9 game container so feedback is visible.
                 if (gameEl && csDialogue.parentElement !== gameEl) {
                     try { gameEl.appendChild(csDialogue); } catch (e) { /* ignore */ }
                 }
+                resetCsDialogueSpecialModes();
                 showCsDialogue(true);
-                csDialogue.classList.remove('cs-dialogue-right', 'cs-dialogue-compact');
-                csDialogue.style.position = 'absolute';
-                csDialogue.style.left = '0';
-                csDialogue.style.right = '0';
-                csDialogue.style.bottom = 'calc(18px + env(safe-area-inset-bottom, 0px))';
-                csDialogue.style.zIndex = '50055';
-                csDialogue.style.margin = '0';
-                csDialogue.style.maxWidth = '100%';
-                csDialogue.style.boxSizing = 'border-box';
-                // Ensure it isn't stuck half-hidden from a previous hidden/transition state.
-                csDialogue.style.transform = 'translateY(0)';
-                csDialogue.style.opacity = '1';
-                csDialogueName.textContent = 'Chris';
-                setTypedHtml(csDialogueText, msg || '');
-                updateCsPortrait(emote || 'focused');
-                const hintSpan = csDialogueHint ? csDialogueHint.querySelector('span') : null;
-                if (hintSpan) hintSpan.textContent = 'Tap to continue';
+                csDialogue.classList.remove('cs-dialogue-right');
+                csDialogue.classList.add('cs-dialogue-house');
+                csDialogue.classList.toggle('cs-dialogue-house-interactive', !matthewChatPassive);
 
-                // In Matthew scenes, tapping the dialogue should advance/close even though the
-                // default csDialogue click handler only advances crime scene intro/evidence.
-                csDialogue.dataset.matthewBubbleActive = '1';
-                if (!csDialogue.__matthewBubbleClickBound) {
-                    csDialogue.__matthewBubbleClickBound = true;
-                    csDialogue.__matthewBubbleClickHandler = (e) => {
-                        try {
-                            const house = document.getElementById('matthew-house-screen');
-                            const room = document.getElementById('matthew-room-screen');
-                            const active = (house && house.style.display === 'block') || (room && room.style.display === 'block');
-                            if (!active) return;
-                            if (csDialogue.dataset.matthewBubbleActive !== '1') return;
-                            // Run before the default handler.
-                            e.stopPropagation();
-                            if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
-                            if (csDialogueText && finishTypingNow(csDialogueText)) return;
-                            playClickSfx();
-                            csDialogue.dataset.matthewBubbleActive = '0';
-                            hideCsDialogue(false);
-                        } catch (err) { /* ignore */ }
-                    };
-                    csDialogue.addEventListener('click', csDialogue.__matthewBubbleClickHandler, true);
+                csDialogueName.textContent = chat.name || 'Chris';
+                setTypedHtml(csDialogueText, line.text || line);
+                updateCsPortrait(line.emote || 'focused');
+                
+                const isLast = matthewChatLineIndex >= chat.lines.length - 1;
+                const hintSpan = csDialogueHint ? csDialogueHint.querySelector('span') : null;
+                if (hintSpan) {
+                    hintSpan.textContent = matthewChatPassive
+                        ? (isLast ? 'Auto close' : 'Auto continue')
+                        : (isLast ? 'Tap to close' : 'Tap to continue');
                 }
+                
+                matthewChatDone = isLast;
+                csDialogue.dataset.matthewChatActive = matthewChatPassive ? '0' : '1';
+                scheduleMatthewChatStep(line);
             } catch (e) { /* ignore */ }
         }
 
+        csDialogue.__matthewChatClickHandler = (e) => {
+            try {
+                const house = document.getElementById('matthew-house-screen');
+                const room = document.getElementById('matthew-room-screen');
+                const active = (house && house.style.display === 'block') || (room && room.style.display === 'block');
+                if (!active || !matthewChatActive || matthewChatPassive) return;
+                if (csDialogue.dataset.matthewChatActive !== '1') return;
+                e.stopPropagation();
+                if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+                if (csDialogueText && finishTypingNow(csDialogueText)) return;
+                playClickSfx();
+                advanceMatthewChat();
+            } catch (err) { /* ignore */ }
+        };
+        csDialogue.addEventListener('click', csDialogue.__matthewChatClickHandler, true);
+
+        function advanceMatthewChat() {
+            clearMatthewChatAutoHide();
+            if (matthewChatDone) {
+                finishMatthewChat();
+                return;
+            }
+            matthewChatLineIndex++;
+            _showMatthewChatLine();
+        }
+
+        function finishMatthewChat() {
+            clearMatthewChatAutoHide();
+            matthewChatActive = false;
+            matthewChatPassive = false;
+            csDialogue.dataset.matthewChatActive = '0';
+            csDialogue.classList.remove('cs-dialogue-house-interactive');
+            hideCsDialogue(true);
+            if (matthewChatCallback) {
+                const cb = matthewChatCallback;
+                matthewChatCallback = null;
+                cb();
+            }
+        }
+
+        function showMatthewChat(lines, callback, options = {}) {
+            MATTHEW_HOUSE_CHAT.lines = lines;
+            matthewChatLineIndex = 0;
+            matthewChatDone = false;
+            matthewChatActive = true;
+            matthewChatPassive = !!options.autoHide;
+            matthewChatCallback = callback || null;
+            _showMatthewChatLine();
+        }
+
         // Inside the locked room (after entering the door code)
-        const MATTHEW_ROOM_ITEMS = [
-            // Big gasoline cans pile
-            { id: 'room-gas-cans', x: 33.5, y: 55.5, w: 33, h: 34, label: 'Gasoline cans' },
-            // Industrial solvents / evidence shelf area
-            { id: 'room-solvents', x: 53.5, y: 12.5, w: 22, h: 26, label: 'Industrial solvents' },
-            // Rope + soaked rags / floor stash
-            { id: 'room-rope', x: 48.5, y: 70.5, w: 26, h: 22, label: 'Rope and rags' },
+        const LEGACY_MATTHEW_ROOM_ITEMS = [
+            { id: 'room-gas-cans', x: 33.5, y: 55, w: 23, h: 26, label: 'Gasoline cans' },
+            { id: 'room-solvents', x: 54.5, y: 13.5, w: 18, h: 17, label: 'Industrial solvents' },
+            { id: 'room-rope', x: 49.5, y: 75, w: 18, h: 13, label: 'Rope and rags' },
         ];
 
         function startMatthewLockedRoomScene() {
             if (!gameEl) return;
+            goToScene(SCENE_NAMES.MATTHEW_ROOM);
 
-            // Hide the house screen (keep it in DOM for backtracking if needed later).
             const houseScreen = document.getElementById('matthew-house-screen');
             if (houseScreen) houseScreen.style.display = 'none';
-
-            let screen = document.getElementById('matthew-room-screen');
-            if (!screen) {
-                screen = document.createElement('div');
-                screen.id = 'matthew-room-screen';
-                screen.style.position = 'absolute';
-                screen.style.inset = '0';
-                screen.style.zIndex = '22';
-                screen.style.display = 'none';
-                screen.style.opacity = '0';
-                screen.style.transition = 'opacity 0.7s ease';
-                screen.style.overflow = 'hidden';
-
-                const bg = document.createElement('img');
-                bg.id = 'matthew-room-bg';
-                bg.src = '../images/chris-case-images/matthew-house/matthewRoom.png';
-                bg.alt = 'Locked room interior';
-                bg.draggable = false;
-                bg.style.position = 'absolute';
-                bg.style.inset = '0';
-                bg.style.width = '100%';
-                bg.style.height = '100%';
-                bg.style.objectFit = 'cover';
-                bg.style.pointerEvents = 'none';
-                screen.appendChild(bg);
-
-                const hitLayer = document.createElement('div');
-                hitLayer.id = 'matthew-room-hit-layer';
-                hitLayer.style.position = 'absolute';
-                hitLayer.style.inset = '0';
-                hitLayer.style.zIndex = '3';
-                screen.appendChild(hitLayer);
-
-                gameEl.appendChild(screen);
-            }
-
-            const hitLayer = document.getElementById('matthew-room-hit-layer');
-            if (!hitLayer) return;
-
-            const found = new Set();
-
-            function renderRoomHitboxes() {
+            const { screen, hitLayer } = ensureCaseOverlayScene({
+                id: 'matthew-room-screen',
+                bgId: 'matthew-room-bg',
+                bgSrc: '../images/chris-case-images/matthew-house/matthewRoom.png',
+                alt: 'Locked room interior',
+                hitLayerId: 'matthew-room-hit-layer'
+            });
+            if (hitLayer) {
                 hitLayer.innerHTML = '';
-                MATTHEW_ROOM_ITEMS.forEach(item => {
-                    const el = document.createElement('div');
-                    el.dataset.itemId = item.id;
-                    el.setAttribute('data-item-id', item.id);
-                    el.style.position = 'absolute';
-                    el.style.left = item.x + '%';
-                    el.style.top = item.y + '%';
-                    el.style.width = item.w + '%';
-                    el.style.height = item.h + '%';
-                    el.style.cursor = 'pointer';
-                    el.style.background = 'transparent';
-                    el.style.border = 'none';
-                    el.style.borderRadius = '12px';
-                    if (found.has(item.id)) el.style.opacity = '0.28';
-
-                    el.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        playClickSfx();
-                        if (found.has(item.id)) return;
-                        found.add(item.id);
-                        playOneShotSfx(sfxEvidenceSting);
-                        if (item.id === 'room-gas-cans') showBubble('Multiple gasoline containers... stockpiled.', 'serious');
-                        if (item.id === 'room-solvents') showBubble('Industrial solvents. Accelerants. This is arson prep.', 'serious');
-                        if (item.id === 'room-rope') showBubble('Rope, rags, residue... he staged everything.', 'accusing');
-                        renderRoomHitboxes();
-
-                        if (found.size >= MATTHEW_ROOM_ITEMS.length) {
-                            setTimeout(() => {
-                                showBubble('That\'s enough. We have probable cause.', 'determined');
-                                setTimeout(() => {
-                                    showArrestWarrantOverlay(() => {
-                                        showArrestedOverlay(() => {
-                                            // Use the existing jail-shot → case-closed flow.
-                                            showCaseJailedVisual();
-                                        });
-                                    });
-                                }, 600);
-                            }, 450);
-                        }
-                    });
-
-                    hitLayer.appendChild(el);
-                });
+                hitLayer.style.pointerEvents = 'none';
             }
 
-            // Enter scene
             screen.style.display = 'block';
             requestAnimationFrame(() => { screen.style.opacity = '1'; });
-            showBubble('This is what he was hiding.', 'serious');
-            renderRoomHitboxes();
+
+            showMatthewChat([
+                { text: 'This hidden room is exactly what Matthew was concealing.', emote: 'serious' },
+                { text: 'Gasoline cans. Industrial solvents. Rope and fuel-soaked rags.', emote: 'focused' },
+                { text: 'This is solid evidence that Matthew is really the arsonist.', emote: 'accusing' },
+                { text: 'I am filing the warrant of arrest right now.', emote: 'determined' }
+            ], () => {
+                finalizeMatthewArrestCase();
+                setTimeout(() => {
+                    showArrestWarrantOverlay(() => {
+                        showCaseJailedVisual();
+                    });
+                }, 280);
+            });
         }
 
         function pulseDoor() {
@@ -9155,7 +9687,7 @@
             door.animate([{ opacity: 0.65 }, { opacity: 1 }, { opacity: 0.65 }], { duration: 980, iterations: 4 });
         }
 
-        function openDoorCodeOverlay() {
+        function legacyOpenDoorCodeOverlay() {
             const existing = document.getElementById('matthew-door-code-overlay');
             if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
 
@@ -9209,7 +9741,7 @@
             display.style.fontSize = '1.6rem';
 
             let entered = '';
-            const sync = () => { display.textContent = entered.padEnd(CODE_LEN, '•'); };
+            const sync = () => { display.textContent = entered.padEnd(CODE_LEN, '*'); };
             sync();
 
             const grid = document.createElement('div');
@@ -9248,11 +9780,13 @@
                 if (entered === TARGET_DIGITS) {
                     matthewRoomUnlocked = true;
                     if (ov.parentElement) ov.parentElement.removeChild(ov);
-                    showBubble('Unlocked.', 'focused');
-                    // Immediately move into the locked room.
-                    setTimeout(() => {
-                        try { startMatthewLockedRoomScene(); } catch (e) { /* ignore */ }
-                    }, 450);
+                    showMatthewChat([
+                        { text: 'Unlocked. This room should seal the case.', emote: 'focused' }
+                    ], () => {
+                        setTimeout(() => {
+                            try { startMatthewLockedRoomScene(); } catch (e) { /* ignore */ }
+                        }, 300);
+                    }, { autoHide: true });
                 } else {
                     entered = '';
                     sync();
@@ -9262,7 +9796,7 @@
 
             const close = document.createElement('button');
             close.type = 'button';
-            close.textContent = '✕';
+            close.textContent = 'X';
             close.style.position = 'absolute';
             close.style.right = '16px';
             close.style.top = '12px';
@@ -9309,14 +9843,12 @@
                 el.style.border = 'none';
 
                 if (item.type === 'color' && item.color) {
-                    const c = COLOR_HEX[item.color] || '#ffffff';
-                    if (!collected.has(item.id)) {
-                        el.style.boxShadow = 'none';
-                    } else {
+                    if (collected.has(item.id)) {
                         el.style.opacity = '0.3';
+                        el.style.pointerEvents = 'none';
                     }
                     const check = document.createElement('div');
-                    check.textContent = '✓';
+                    check.textContent = 'OK';
                     check.style.position = 'absolute';
                     check.style.right = '8px';
                     check.style.top = '6px';
@@ -9327,11 +9859,6 @@
                     check.style.display = collected.has(item.id) ? 'block' : 'none';
                     el.appendChild(check);
                     el.dataset.hasCheck = '1';
-                } else if (item.type === 'door') {
-                    if (matthewColorSequence.length >= CODE_LEN) {
-                        el.style.border = 'none';
-                        el.style.boxShadow = 'none';
-                    }
                 } else if (item.type === 'clue') {
                     const icon = document.createElement('div');
                     icon.style.position = 'absolute';
@@ -9350,35 +9877,63 @@
                 el.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    playClickSfx();
                     if (item.type === 'color') {
-                        // Allow repeats (needed for multi-digit code with only 5 objects).
-                        if (!collected.has(item.id)) collected.add(item.id);
-                        matthewColorSequence.push(item.color);
+                        if (collected.has(item.id)) return;
+                        playClickSfx();
+                        collected.add(item.id);
                         playOneShotSfx(sfxCsCorrect);
-                        const variants = ['Filed. Keep going.', 'Bagged. Next.', 'Noted. Keep moving.', 'Logged. Stay focused.'];
-                        showBubble(variants[Math.floor(Math.random() * variants.length)]);
-                        if (collected.size >= REQUIRED_UNIQUE_FOUND) {
-                            showBubble('I think I have enough. Time to try the door.');
-                            pulseDoor();
-                        }
+                        const variants = [
+                            { text: 'Filed. Keep going.', emote: 'focused' },
+                            { text: 'Bagged. Next.', emote: 'focused' },
+                            { text: 'Noted. Keep moving.', emote: 'serious' },
+                            { text: 'Logged. Stay focused.', emote: 'determined' }
+                        ];
                         renderHitboxes();
+                        if (collected.size >= REQUIRED_UNIQUE_FOUND) {
+                            showMatthewChat([
+                                { text: 'All five color markers are logged.', emote: 'thinking' },
+                                { text: 'Time to try the door.', emote: 'determined' }
+                            ], () => {
+                                pulseDoor();
+                            }, { autoHide: true });
+                        } else {
+                            const randomLine = variants[Math.floor(Math.random() * variants.length)];
+                            showMatthewChat([randomLine], null, { autoHide: true });
+                        }
                         return;
                     }
                     if (item.type === 'clue') {
+                        playClickSfx();
                         showMatthewHouseColorCodeTutorial();
                         return;
                     }
                     if (item.type === 'door') {
-                        // Gate keypad by finding the 5 unique objects (not by sequence length).
+                        playClickSfx();
                         if (collected.size < REQUIRED_UNIQUE_FOUND) {
-                            showBubble('Locked. Find the 5 colored objects first.');
+                            showMatthewChat([
+                                { text: 'Locked. Find all 5 colored objects first.', emote: 'focused' }
+                            ], null, { autoHide: true });
                             return;
                         }
                         if (!matthewRoomUnlocked) {
-                            openDoorCodeOverlay();
+                            openMatthewDoorCodeOverlay({
+                                codeLength: CODE_LEN,
+                                targetDigits: TARGET_DIGITS,
+                                onSuccess: () => {
+                                    matthewRoomUnlocked = true;
+                                    showMatthewChat([
+                                        { text: 'Unlocked. This room should seal the case.', emote: 'focused' }
+                                    ], () => {
+                                        setTimeout(() => {
+                                            try { startMatthewLockedRoomScene(); } catch (e) { /* ignore */ }
+                                        }, 300);
+                                    }, { autoHide: true });
+                                }
+                            });
                         } else {
-                            showBubble('Door is already open.');
+                            showMatthewChat([
+                                { text: 'Door is already open.', emote: 'observant' }
+                            ], null, { autoHide: true });
                         }
                         return;
                     }
@@ -9672,6 +10227,7 @@
     }
 
     function returnToHomeScreen() {
+        goToScene(SCENE_NAMES.HOME, { caseResultPhase: 'hidden' });
         setCrimeMode(false);
         setUiTransitioning(true, 520);
         const game = document.getElementById('game');
@@ -9691,6 +10247,7 @@
         clearCsEvidenceAutoAdvance();
         clearCsIntroAutoAdvance();
         clearCsDialogueCompactReset();
+        hideMatthewInvestigationScreens();
 
         officeActive = false;
         postOfficeActive = false;
@@ -9780,14 +10337,11 @@
     }
 
     function startCaseClosedOutroDialogue() {
-        caseClosedOutroActive = true;
+        goToScene(SCENE_NAMES.CASE_CLOSED_OUTRO);
         caseClosedOutroIdx = 0;
-        officeActive = true;
-        postOfficeActive = false;
-        interrogationActive = false;
         currentEmoteSrc = '';
         const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
-        officeBg.src = activeCaseId === 'chris-case' ? CHRIS_OFFICE_BG_SRC : '../images/jared-case-images/office/jaredsOffice.png';
+        officeBg.src = getCaseConfig(activeCaseId).officeBgSrc;
         const forensicEl = document.getElementById('office-character--forensic');
         if (forensicEl) forensicEl.classList.remove('active');
         officeCharWrap.classList.remove('office-character--left');
@@ -9798,12 +10352,15 @@
     }
 
     function showCaseClosedMemorial() {
-        const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
-        caseResultPhase = 'memorial';
+        const activeCaseId = getActiveCaseId();
+        const caseConfig = getCaseConfig(activeCaseId);
+        goToScene(SCENE_NAMES.CASE_RESULT, { caseResultPhase: 'memorial' });
         setCaseResultVisualMode(false);
+        hideMatthewInvestigationScreens();
+        if (lastCaseSummary) renderCaseResultSummary(lastCaseSummary);
         _setCaseResultContent(
             'CASE CLOSED',
-            activeCaseId === 'chris-case' ? 'Matthew has been secured.' : 'Mikael is now behind bars.',
+            caseConfig.caseResult.memorialSubtitle,
             'Tap to return to the home screen'
         );
         _showCaseResultOverlay();
@@ -9814,18 +10371,12 @@
             clearTimeout(caseJailedShotTimeoutId);
             caseJailedShotTimeoutId = null;
         }
-        const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
-        caseResultPhase = 'jail-shot';
-        if (activeCaseId === 'chris-case') {
-            _setCaseResultContent('PRISON TRANSFER', 'Matthew has been secured and booked.', '');
-            showCaseResultVisual(
-                '../images/chris-case-images/matthew-jailed.png',
-                'With Matthew jailed, Benjots can rebuild their unli rice business without him.'
-            );
-        } else {
-            _setCaseResultContent('PRISON TRANSFER', 'Mikael has been secured and booked.', '');
-            showCaseResultVisual('../images/jared-case-images/elijahsHouse/mikaelJailed.png', 'Mikael sentenced and transferred to a holding cell.');
-        }
+        const activeCaseId = getActiveCaseId();
+        const caseConfig = getCaseConfig(activeCaseId);
+        if (lastCaseSummary) renderCaseResultSummary(lastCaseSummary);
+        goToScene(SCENE_NAMES.CASE_RESULT, { caseResultPhase: 'jail-shot' });
+        _setCaseResultContent(caseConfig.caseResult.jailedTitle, caseConfig.caseResult.jailedSubtitle, '');
+        showCaseResultVisual(caseConfig.caseResult.visualImage, caseConfig.caseResult.visualCaption);
         caseJailedShotTimeoutId = setTimeout(() => {
             caseJailedShotTimeoutId = null;
             showCaseClosedMemorial();
@@ -9894,16 +10445,14 @@
 
     if (caseResultScreen) {
         const advanceFromOverlay = (e) => {
+            if (!isCaseResultVisible()) return;
             if (e) {
                 e.preventDefault();
                 e.stopPropagation();
             }
             advanceCaseResult();
         };
-        // Capture phase so taps on inner elements can't block advancing.
         caseResultScreen.addEventListener('click', advanceFromOverlay, true);
-        caseResultScreen.addEventListener('pointerdown', advanceFromOverlay, { passive: false, capture: true });
-        caseResultScreen.addEventListener('touchstart', advanceFromOverlay, { passive: false, capture: true });
     }
 
     if (caseOutroAudio) {
@@ -9962,6 +10511,8 @@
     const csDialogueHint = document.getElementById('cs-dialogue-hint');
     const csMisclickLayer = document.getElementById('cs-misclick-layer');
     const csDebug       = location.search.includes('debug');
+    const csDialogueHomeParent = csDialogue ? csDialogue.parentElement : null;
+    const csDialogueHomeNext = csDialogue ? csDialogue.nextElementSibling : null;
 
     const mapConfirmOverlay = document.getElementById('map-confirm-overlay');
     const mapConfirmCancel = document.getElementById('map-confirm-cancel');
@@ -10663,11 +11214,20 @@
                 setTimeout(finishClose, 260);
             };
 
+            // Allow continuing by clicking either the dialogue bubble OR anywhere
+            // on the overlay. This makes the post-solve transition reliable even
+            // if the dialogue bubble is obscured or the user clicks the panel.
             if (csDialogueEl) {
                 csDialogueEl.addEventListener('click', continueHandler, { capture: true, once: true });
-            } else {
-                overlay.addEventListener('click', continueHandler, { once: true });
             }
+            overlay.addEventListener('click', continueHandler, { once: true });
+
+            // Safety net: auto-continue shortly after solve so countdown always starts.
+            setTimeout(() => {
+                if (!solved) return;
+                if (!document.getElementById('wire-puzzle-overlay')) return;
+                continueHandler();
+            }, 1200);
         }
 
         function tryMatchDrop(colorId, x, y) {
@@ -11555,22 +12115,14 @@
     };
 
     function getCorrectSuspectId() {
-        const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
-        return activeCaseId === 'chris-case' ? 'matthew' : 'mikael';
+        return getCaseConfig().correctSuspectId;
     }
 
     function setSuspectDataForCase(caseId) {
-        if (caseId === 'chris-case') {
-            SUSPECT_DISPLAY = CHRIS_SUSPECT_DISPLAY;
-            SUSPECT_PROFILES = CHRIS_SUSPECT_PROFILES;
-            SUSPECT_PROFILE_MAP = Object.fromEntries(SUSPECT_PROFILES.map((p) => [p.id, p]));
-            INTERROGATION_SCRIPTS = CHRIS_INTERROGATION_SCRIPTS;
-            return;
-        }
-        // default: jared case
-        SUSPECT_DISPLAY = JARED_SUSPECT_DISPLAY;
-        SUSPECT_PROFILES = JARED_SUSPECT_PROFILES;
-        INTERROGATION_SCRIPTS = JARED_INTERROGATION_SCRIPTS;
+        const config = getCaseConfig(caseId);
+        SUSPECT_DISPLAY = config.suspectDisplay;
+        SUSPECT_PROFILES = config.suspectProfiles;
+        INTERROGATION_SCRIPTS = config.interrogationScripts;
         SUSPECT_PROFILE_MAP = Object.fromEntries(SUSPECT_PROFILES.map((p) => [p.id, p]));
     }
     const suspectSelectionShell = document.getElementById('selection-swipe-shell');
@@ -11630,18 +12182,19 @@
     }
 
     function ensureCrimeSceneDataForCase(caseId) {
-        const id = caseId || 'bad-blood';
-        if (id === 'chris-case') {
-            crimeSceneEvidence = CHRIS_CRIME_SCENE_EVIDENCE;
-            crimeSceneTotal = CHRIS_CRIME_SCENE_EVIDENCE.length;
-            return;
-        }
-        crimeSceneEvidence = CRIME_SCENE_EVIDENCE;
-        crimeSceneTotal = CRIME_SCENE_TOTAL;
+        const config = getCaseConfig(caseId);
+        crimeSceneItems = config.crimeSceneItems;
+        crimeSceneEvidence = config.crimeSceneEvidence;
+        crimeSceneScript = config.crimeSceneScript;
+        crimeSceneEvidenceDialogue = config.crimeSceneEvidenceDialogue;
+        crimeSceneTotal = config.crimeSceneTotal;
     }
 
     function renderSelectionEvidenceForCase(caseId) {
         ensureCrimeSceneDataForCase(caseId);
+        const config = getCaseConfig(caseId);
+        const evidenceConfig = config.selectionEvidence || {};
+        const isChris = !config.hasFingerprintEvidence;
         if (!selectionEvidenceIcons) return;
 
         // Replace the old Jared hardcoded HTML with the active case evidence list.
@@ -11655,9 +12208,7 @@
             selectionEvidenceIcons.appendChild(card);
         });
 
-        // Jared has a partial fingerprint evidence; Chris currently does not.
-        const isChris = caseId === 'chris-case';
-        if (!isChris) {
+        if (config.hasFingerprintEvidence) {
             // Re-add the Partial Print tile (it was previously hardcoded in HTML).
             const btn = document.createElement('button');
             btn.id = 'selection-partial-fp-btn';
@@ -11685,20 +12236,11 @@
         if (partialImg) partialImg.src = isChris ? '' : '../images/jared-case-images/fingerprints/partialFingerprint.png';
         if (sidePreview) sidePreview.src = isChris ? '' : '../images/jared-case-images/fingerprints/partialFingerprint.png';
 
-        // Keep the forensic panel readable for Chris (avoid showing Jared-specific labels).
-        if (isChris) {
-            if (selectionEvidenceSourceA) selectionEvidenceSourceA.textContent = 'Evidence';
-            if (selectionEvidenceSourceB) selectionEvidenceSourceB.textContent = 'Evidence';
-            if (selectionEvidenceNoteA) selectionEvidenceNoteA.textContent = 'Collected case evidence from the scene.';
-            if (selectionEvidenceNoteB) selectionEvidenceNoteB.textContent = 'Interrogate suspects and compare with the case file.';
-            if (selectionEvidenceBloodVal) selectionEvidenceBloodVal.textContent = '';
-        } else {
-            if (selectionEvidenceSourceA) selectionEvidenceSourceA.textContent = 'Handkerchief';
-            if (selectionEvidenceSourceB) selectionEvidenceSourceB.textContent = 'Latex Gloves';
-            if (selectionEvidenceNoteA) selectionEvidenceNoteA.textContent = 'Secondary blood recovered from the victim’s handkerchief.';
-            if (selectionEvidenceNoteB) selectionEvidenceNoteB.textContent = 'Recovered from the inside of the glove. Match the ridge flow to the suspect file.';
-            if (selectionEvidenceBloodVal) selectionEvidenceBloodVal.textContent = 'A+';
-        }
+        if (selectionEvidenceSourceA) selectionEvidenceSourceA.textContent = evidenceConfig.sourceA || '';
+        if (selectionEvidenceSourceB) selectionEvidenceSourceB.textContent = evidenceConfig.sourceB || '';
+        if (selectionEvidenceNoteA) selectionEvidenceNoteA.textContent = evidenceConfig.noteA || '';
+        if (selectionEvidenceNoteB) selectionEvidenceNoteB.textContent = evidenceConfig.noteB || '';
+        if (selectionEvidenceBloodVal) selectionEvidenceBloodVal.textContent = evidenceConfig.blood || '';
     }
 
     function wrapSuspectIndex(index) {
@@ -11774,7 +12316,8 @@
         const alreadyDone = interrogatedSuspects.has(profile.id);
         const interrogateMode = suspectSelectionMode === 'interrogate';
         const arrestMode = suspectSelectionMode === 'accuse';
-        const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
+        const activeCaseId = getActiveCaseId();
+        const caseConfig = getCaseConfig(activeCaseId);
 
         if (selectionDossierName) selectionDossierName.textContent = profile.name;
         if (selectionDossierRole) selectionDossierRole.textContent = profile.role;
@@ -11787,7 +12330,7 @@
         if (selectionDossierThumbBtn) selectionDossierThumbBtn.setAttribute('aria-label', 'Inspect ' + profile.displayName + ' fingerprint');
         if (selectionConfirmBtn) {
             if (interrogateMode && isInterrogationComplete()) {
-                selectionConfirmBtn.textContent = 'Proceed to Arrest';
+                selectionConfirmBtn.textContent = activeCaseId === 'chris-case' ? 'File Search Warrant' : 'Proceed to Arrest';
                 selectionConfirmBtn.disabled = false;
             } else {
                 selectionConfirmBtn.textContent = interrogateMode ? (alreadyDone ? profile.displayName + ' already interrogated' : 'Interrogate ' + profile.displayName) : 'Arrest ' + profile.displayName;
@@ -11796,7 +12339,7 @@
         }
 
         // Chris case: replace fingerprint/forensic UI with the thinking-path panel.
-        if (activeCaseId === 'chris-case') {
+        if (!caseConfig.hasFingerprintEvidence) {
             if (selectionEvidencePanel) selectionEvidencePanel.style.display = 'none';
             if (selectionThinkingPanel) {
                 selectionThinkingPanel.classList.add('active');
@@ -11892,13 +12435,16 @@
         const profile = SUSPECT_PROFILE_MAP[suspectId];
         if (!profile || !selectionConfirmOverlay) return;
         const alreadyDone = interrogatedSuspects.has(profile.id);
+        const activeCaseId = getActiveCaseId();
         if (suspectSelectionMode === 'interrogate' && alreadyDone) return;
         pendingSuspectConfirmId = profile.id;
         const targetIndex = SUSPECT_PROFILES.findIndex((item) => item.id === suspectId);
         if (targetIndex >= 0) setSuspectFocusIndex(targetIndex, true);
         if (selectionConfirmText) {
             selectionConfirmText.textContent = suspectSelectionMode === 'interrogate'
-                ? 'Interrogate ' + profile.displayName + ' now? Finish all three interviews before the Arrest phase unlocks.'
+                ? (activeCaseId === 'chris-case'
+                    ? 'Interrogate ' + profile.displayName + ' now? Finish all three interviews before Chris can file the search warrant.'
+                    : 'Interrogate ' + profile.displayName + ' now? Finish all three interviews before the Arrest phase unlocks.')
                  : 'Arrest ' + profile.displayName + ' now? This will lock in your final judgment for the case.';
         }
         if (selectionConfirmAccept) {
@@ -11911,13 +12457,15 @@
 
     function promptCurrentSuspectConfirm() {
         if (suspectSelectionMode === 'interrogate' && isInterrogationComplete()) {
-            // Proceed-to-arrest confirmation (player cannot return to interrogation after entering Arrest phase).
-            pendingSuspectConfirmId = '__proceed_to_arrest__';
+            const activeCaseId = getActiveCaseId();
+            pendingSuspectConfirmId = activeCaseId === 'chris-case' ? '__file_search_warrant__' : '__proceed_to_arrest__';
             if (selectionConfirmText) {
-                selectionConfirmText.textContent = 'Proceed to Arrest phase now? You can no longer go back to the Suspect Lineup after this.';
+                selectionConfirmText.textContent = activeCaseId === 'chris-case'
+                    ? 'File the search warrant now? This moves the case into Matthew\'s house search.'
+                    : 'Proceed to Arrest phase now? You can no longer go back to the Suspect Lineup after this.';
             }
             if (selectionConfirmAccept) {
-                selectionConfirmAccept.textContent = 'Yes, Proceed';
+                selectionConfirmAccept.textContent = activeCaseId === 'chris-case' ? 'Yes, File Warrant' : 'Yes, Proceed';
                 selectionConfirmAccept.disabled = false;
             }
             if (selectionConfirmOverlay) {
@@ -11936,6 +12484,19 @@
         if (!pendingSuspectConfirmId) return;
         const id = pendingSuspectConfirmId;
         closeSuspectConfirm();
+        if (id === '__file_search_warrant__') {
+            const screen = document.getElementById('suspect-selection-screen');
+            if (screen) {
+                screen.classList.remove('active');
+                setTimeout(() => {
+                    screen.style.display = 'none';
+                    startChrisPostMatthewDialogue();
+                }, 480);
+                return;
+            }
+            startChrisPostMatthewDialogue();
+            return;
+        }
         if (id === '__proceed_to_arrest__') {
             showSuspectSelection('accuse');
             return;
@@ -12069,12 +12630,10 @@
     }
 
     function showPostInvestigationOffice() {
-        postOfficeActive = true;
+        goToScene(SCENE_NAMES.POST_OFFICE);
         postOfficeIdx = 0;
-        officeActive = true;
         officeScreen.style.display = 'block';
-        const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
-        officeBg.src = activeCaseId === 'chris-case' ? CHRIS_OFFICE_BG_SRC : '../images/jared-case-images/office/jaredsOffice.png';
+        officeBg.src = getCaseConfig().officeBgSrc;
         resetOfficeSecondaryCharacterUi();
         _showPostOfficeLine();
         requestAnimationFrame(() => officeScreen.classList.add('active'));
@@ -12097,8 +12656,99 @@
         { char: 'chris', emote: 'firm', text: 'Let’s put pressure on the three suspects. Statements first. Then we decide.' },
     ];
 
+    const CASES = Object.freeze({
+        'bad-blood': {
+            id: 'bad-blood',
+            inspector: 'jared',
+            officeBgSrc: OFFICE_BG_SRC,
+            officeScript: OFFICE_SCRIPT,
+            caseClosedOutroScript: CASE_CLOSED_OUTRO_SCRIPT,
+            crimeSceneItems: CRIME_SCENE_ITEMS,
+            crimeSceneEvidence: CRIME_SCENE_EVIDENCE,
+            crimeSceneScript: CRIME_SCENE_SCRIPT,
+            crimeSceneEvidenceDialogue: CRIME_SCENE_EVIDENCE_DIALOGUE,
+            crimeSceneTotal: CRIME_SCENE_TOTAL,
+            suspectDisplay: JARED_SUSPECT_DISPLAY,
+            suspectProfiles: JARED_SUSPECT_PROFILES,
+            interrogationScripts: JARED_INTERROGATION_SCRIPTS,
+            postOfficeScript: POST_INVESTIGATION_OFFICE_SCRIPT,
+            correctSuspectId: 'mikael',
+            hasFingerprintEvidence: true,
+            lineupCopy: {
+                interrogate: {
+                    subtitle: 'Review each suspect, compare the forensic match, and interrogate all three before the Arrest phase unlocks.',
+                    hint: 'Use the arrows or swipe to cycle suspects. Interrogate all three first. After the last interview, every lineup button switches to Arrest.'
+                },
+                accuse: {
+                    subtitle: 'All statements are complete. Review the lineup one last time, compare the blood sample and partial print, then make the arrest.',
+                    hint: 'Final pass: inspect the dossier and fingerprint, compare the forensic match, then press Arrest on the suspect you want to lock in.'
+                }
+            },
+            selectionEvidence: {
+                sourceA: 'Handkerchief',
+                sourceB: 'Latex Gloves',
+                noteA: 'Secondary blood recovered from the victim\u2019s handkerchief.',
+                noteB: 'Recovered from the inside of the glove. Match the ridge flow to the suspect file.',
+                blood: 'A+'
+            },
+            caseResult: {
+                memorialSubtitle: 'Mikael is now behind bars.',
+                jailedTitle: 'PRISON TRANSFER',
+                jailedSubtitle: 'Mikael has been secured and booked.',
+                visualImage: '../images/jared-case-images/elijahsHouse/mikaelJailed.png',
+                visualCaption: 'Mikael sentenced and transferred to a holding cell.'
+            }
+        },
+        'chris-case': {
+            id: 'chris-case',
+            inspector: 'chris',
+            officeBgSrc: CHRIS_OFFICE_BG_SRC,
+            officeScript: CHRIS_OFFICE_SCRIPT,
+            caseClosedOutroScript: CHRIS_CASE_CLOSED_OUTRO_SCRIPT,
+            crimeSceneItems: CHRIS_CRIME_SCENE_ITEMS,
+            crimeSceneEvidence: CHRIS_CRIME_SCENE_EVIDENCE,
+            crimeSceneScript: CHRIS_CRIME_SCENE_SCRIPT,
+            crimeSceneEvidenceDialogue: CHRIS_CRIME_SCENE_EVIDENCE_DIALOGUE,
+            crimeSceneTotal: CHRIS_CRIME_SCENE_EVIDENCE.length,
+            suspectDisplay: CHRIS_SUSPECT_DISPLAY,
+            suspectProfiles: CHRIS_SUSPECT_PROFILES,
+            interrogationScripts: CHRIS_INTERROGATION_SCRIPTS,
+            postOfficeScript: CHRIS_POST_OFFICE_SCRIPT,
+            correctSuspectId: 'matthew',
+            hasFingerprintEvidence: false,
+            lineupCopy: {
+                interrogate: {
+                    subtitle: 'Review each suspect, compare their statements against the receipt trail and scene evidence, and interrogate all three before Chris files the search warrant.',
+                    hint: 'Use the arrows or swipe to cycle suspects. Interrogate all three first. Once every statement is complete, Chris can file the warrant and search Matthew\u2019s house.'
+                },
+                accuse: {
+                    subtitle: 'Review the case file one last time, compare the receipt trail, motive, and scene evidence, then make the arrest.',
+                    hint: 'Final pass: inspect the dossier and case evidence, then press Arrest on the suspect you want to lock in.'
+                }
+            },
+            selectionEvidence: {
+                sourceA: 'Evidence',
+                sourceB: 'Evidence',
+                noteA: 'Collected case evidence from the scene.',
+                noteB: 'Interrogate suspects and compare their statements with the receipt trail and motive.',
+                blood: ''
+            },
+            caseResult: {
+                memorialSubtitle: 'Matthew has been secured.',
+                jailedTitle: 'PRISON TRANSFER',
+                jailedSubtitle: 'Matthew has been secured and booked.',
+                visualImage: '../images/chris-case-images/matthew-jailed.png',
+                visualCaption: 'With Matthew jailed, Benjots can rebuild their unli rice business without him.'
+            }
+        }
+    });
+
+    function getCaseConfig(caseId = getActiveCaseId()) {
+        return CASES[caseId] || CASES['bad-blood'];
+    }
+
     function getPostOfficeScriptForCase(caseId) {
-        return caseId === 'chris-case' ? CHRIS_POST_OFFICE_SCRIPT : POST_INVESTIGATION_OFFICE_SCRIPT;
+        return getCaseConfig(caseId).postOfficeScript;
     }
 
     function _showPostOfficeLine() {
@@ -12257,13 +12907,15 @@
     }
 
     function showSuspectSelection(mode = 'interrogate') {
+        goToScene(mode === 'accuse' ? SCENE_NAMES.SUSPECT_ACCUSATION : SCENE_NAMES.SUSPECT_LINEUP);
         setCrimeMode(false);
         setUiTransitioning(true, 360);
         const screen = document.getElementById('suspect-selection-screen');
         if (!screen) return;
 
         suspectSelectionMode = mode;
-        const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
+        const activeCaseId = getActiveCaseId();
+        const caseConfig = getCaseConfig(activeCaseId);
         setSuspectDataForCase(activeCaseId);
         renderSelectionEvidenceForCase(activeCaseId);
         clearCountdownOverlay();
@@ -12276,12 +12928,6 @@
         try { if (sfxPoliceSiren) sfxPoliceSiren.currentTime = 0; } catch (e) { /* ignore */ }
         closeFingerprintAnalysis();
         initSuspectSelectionUi();
-
-        officeActive = false;
-        postOfficeActive = false;
-        interrogationActive = false;
-        profilingActive = false;
-        csActive = false;
 
         const containers = [
             officeScreen,
@@ -12301,13 +12947,13 @@
         if (selectionTitle) selectionTitle.textContent = mode === 'interrogate' ? 'Suspect Lineup' : 'Make the Arrest';
         if (selectionSubtitle) {
             selectionSubtitle.textContent = mode === 'interrogate'
-                ? 'Review each suspect, compare the forensic match, and interrogate all three before the Arrest phase unlocks.'
-                : 'All statements are complete. Review the lineup one last time, compare the blood sample and partial print, then make the arrest.';
+                ? caseConfig.lineupCopy.interrogate.subtitle
+                : caseConfig.lineupCopy.accuse.subtitle;
         }
         if (selectionSwipeHint) {
             selectionSwipeHint.textContent = mode === 'interrogate'
-                ? 'Use the arrows or swipe to cycle suspects. Interrogate all three first. After the last interview, every lineup button switches to Arrest.'
-                : 'Final pass: inspect the dossier and fingerprint, compare the forensic match, then press Arrest on the suspect you want to lock in.';
+                ? caseConfig.lineupCopy.interrogate.hint
+                : caseConfig.lineupCopy.accuse.hint;
         }
 
         suspectFocusIndex = 0;
@@ -12327,11 +12973,8 @@
     }
 
     function showProfilingOffice() {
-        profilingActive = true;
+        goToScene(SCENE_NAMES.PROFILING);
         profilingIdx = 0;
-        interrogationActive = false;
-        postOfficeActive = false;
-        officeActive = true;
         officeScreen.style.display = 'block';
         officeBg.src = '../images/jared-case-images/office/jaredsOffice.png';
         const forensicEl = document.getElementById('office-character--forensic');
@@ -12412,19 +13055,14 @@
     }
 
     function startInterrogation(suspectId) {
+        goToScene(SCENE_NAMES.INTERROGATION);
         // Ensure no previous office/post-office dialogue continues "under" interrogation.
         stopTypingSfx();
         clearCountdownOverlay();
         officeLineIdx = 0;
         postOfficeIdx = 0;
-        postOfficeActive = false;
-        caseClosedOutroActive = false;
-
-        interrogationActive = true;
-        profilingActive = false;
         interrogationSuspect = suspectId;
         interrogationIdx = 0;
-        officeActive = true;
         officeScreen.style.display = 'block';
         officeBg.src = '../images/jared-case-images/office/jail.png';
 
@@ -12492,19 +13130,15 @@
         interrogationIdx++;
         if (interrogationIdx >= script.length) {
             interrogatedSuspects.add(interrogationSuspect);
+            recordInterrogatedSuspect(interrogationSuspect);
             stopTypingSfx();
-            // Chris case: after Roy interrogation, trigger the warrant -> Matthew's house flow.
-            if (interrogationSuspect === 'roy' &&
-                (caseRun && caseRun.caseId === 'chris-case')) {
+            if ((caseRun && caseRun.caseId === 'chris-case') && isInterrogationComplete()) {
                 hideOfficeScene(() => {
                     startChrisPostMatthewDialogue();
                 });
                 return;
             }
             hideOfficeScene(() => {
-                interrogationActive = false;
-                // After the last interrogation, return to the lineup so the player can review evidence,
-                // then manually proceed to the Arrest phase.
                 showSuspectSelection('interrogate');
             });
             return;
@@ -12517,7 +13151,7 @@
         if (!caseResultScreen || !caseResultTitle || !caseResultSubtitle || !caseResultPrompt) return;
         stopCaseOutroAudio(true, true);
         const summary = finalizeCaseSummary(false);
-        caseResultPhase = 'restart-home';
+        goToScene(SCENE_NAMES.CASE_RESULT, { caseResultPhase: 'restart-home' });
         _setCaseResultContent(titleText || 'MISSION FAILED', subtitleText || 'Case file collapsed before a valid accusation.', 'Tap to restart from the beginning');
         renderCaseResultSummary(summary);
         _showCaseResultOverlay();
@@ -12529,7 +13163,7 @@
 
         if (isCorrect) {
             const summary = finalizeCaseSummary(true);
-            caseResultPhase = 'intro';
+            goToScene(SCENE_NAMES.CASE_RESULT, { caseResultPhase: 'intro' });
             _setCaseResultContent('CASE CLOSED', summary.rank + ' • ' + summary.stars, 'Score locked. Outro playing... tap to continue');
             renderCaseResultSummary(summary);
             _showCaseResultOverlay();
@@ -12548,26 +13182,15 @@
     }
 
     function showCrimeScene() {
+        goToScene(SCENE_NAMES.CRIME_SCENE);
         setCrimeMode(true);
         setUiTransitioning(true, 820);
         syncInGameMenuBtn();
         if (!caseRun) resetCaseRun(mapInspector || '');
-        // Switch crime-scene datasets by case
-        const activeCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
-        if (activeCaseId === 'chris-case') {
-            crimeSceneItems = CHRIS_CRIME_SCENE_ITEMS;
-            crimeSceneEvidence = CHRIS_CRIME_SCENE_EVIDENCE;
-            crimeSceneScript = CHRIS_CRIME_SCENE_SCRIPT;
-            crimeSceneEvidenceDialogue = CHRIS_CRIME_SCENE_EVIDENCE_DIALOGUE;
-            crimeSceneTotal = CHRIS_CRIME_SCENE_EVIDENCE.length;
-        } else {
-            crimeSceneItems = CRIME_SCENE_ITEMS;
-            crimeSceneEvidence = CRIME_SCENE_EVIDENCE;
-            crimeSceneScript = CRIME_SCENE_SCRIPT;
-            crimeSceneEvidenceDialogue = CRIME_SCENE_EVIDENCE_DIALOGUE;
-            crimeSceneTotal = CRIME_SCENE_TOTAL;
-        }
-        csActive = true;
+        restoreCsDialogueHome();
+        resetCsDialogueSpecialModes();
+        const activeCaseId = getActiveCaseId();
+        ensureCrimeSceneDataForCase(activeCaseId);
         csCollected = new Set();
         csWrongBusy = false;
         csFeedbackBusy = false;
@@ -12783,6 +13406,7 @@
     }
 
     function showLevelCleared() {
+        goToScene(SCENE_NAMES.LEVEL_CLEARED);
         stopCsTimer();
         if (caseRun) caseRun.investigationTime = Math.max(caseRun.investigationTime || 0, csInvestigationTime || 0);
         const screen = document.getElementById('level-cleared-screen');
@@ -12883,6 +13507,43 @@
         }
     }
 
+    function clearCsDialogueInlineOverrides() {
+        if (!csDialogue) return;
+        [
+            'position',
+            'left',
+            'right',
+            'bottom',
+            'z-index',
+            'margin',
+            'max-width',
+            'box-sizing',
+            'transform',
+            'opacity',
+            'pointer-events',
+            'width'
+        ].forEach((prop) => {
+            csDialogue.style.removeProperty(prop);
+        });
+    }
+
+    function resetCsDialogueSpecialModes() {
+        if (!csDialogue) return;
+        clearCsDialogueInlineOverrides();
+        csDialogue.classList.remove('cs-dialogue-house', 'cs-dialogue-house-interactive');
+    }
+
+    function restoreCsDialogueHome() {
+        if (!csDialogue || !csDialogueHomeParent || csDialogue.parentElement === csDialogueHomeParent) return;
+        try {
+            if (csDialogueHomeNext && csDialogueHomeNext.parentElement === csDialogueHomeParent) {
+                csDialogueHomeParent.insertBefore(csDialogue, csDialogueHomeNext);
+            } else {
+                csDialogueHomeParent.appendChild(csDialogue);
+            }
+        } catch (e) { /* ignore */ }
+    }
+
     function showCsDialogue(compact) {
         clearCsDialogueCompactReset();
         if (compact) {
@@ -12954,6 +13615,7 @@
         if (ingamePauseOverlay && ingamePauseOverlay.classList.contains('active')) return;
         clearCsEvidenceAutoAdvance();
         clearCsIntroAutoAdvance();
+        resetCsDialogueSpecialModes();
         showCsDialogue(false);
         csDialogue.classList.add('cs-dialogue-right');
         if (line.image) {
@@ -13048,6 +13710,7 @@
         const line = script && script[csEvidenceLineIdx];
         if (!line) return;
         clearCsEvidenceAutoAdvance();
+        resetCsDialogueSpecialModes();
         showCsDialogue(true);
         csDialogue.classList.remove('cs-dialogue-right');
         csDialogueName.textContent = getInspectorDisplayName((caseRun && caseRun.inspector) ? caseRun.inspector : (mapInspector || 'jared'));
