@@ -7952,6 +7952,7 @@
 
     function showMapScreen(inspector) {
         hideLevelClearedOverlay();
+        clearCrimeSceneTransientTimeouts();
         mapInspector = inspector;
         goToScene(SCENE_NAMES.MAP);
         setCrimeMode(false);
@@ -8108,6 +8109,7 @@
 
     function showCaseBanner(box) {
         hideLevelClearedOverlay();
+        clearCrimeSceneTransientTimeouts();
         goToScene(SCENE_NAMES.CASE_BANNER);
         setUiTransitioning(true, 860);
         bannerToOfficeTransitioning = false;
@@ -8927,6 +8929,7 @@
 
     function showOfficeScene() {
         hideLevelClearedOverlay();
+        clearCrimeSceneTransientTimeouts();
         goToScene(SCENE_NAMES.OFFICE_BRIEFING);
         setCrimeMode(false);
         setUiTransitioning(true, 1080);
@@ -10566,6 +10569,7 @@
         stopCsTimer();
         stopCaseOutroAudio(true);
         hideLevelClearedOverlay();
+        clearCrimeSceneTransientTimeouts();
         if (caseJailedShotTimeoutId !== null) {
             clearTimeout(caseJailedShotTimeoutId);
             caseJailedShotTimeoutId = null;
@@ -11950,6 +11954,9 @@
     let csStoryPanReverse = false;
     let csSceneSwapToken = 0;
     let csSceneBlendTimeoutId = null;
+    let csWrongFeedbackTimeoutId = null;
+    let csCorrectFeedbackTimeoutId = null;
+    let csLevelClearedTimeoutId = null;
 
     const POST_INVESTIGATION_OFFICE_SCRIPT = [
         { char: 'jared', emote: 'serious', text: 'That’s everything.' },
@@ -13370,6 +13377,7 @@
 
     function showCrimeScene() {
         hideLevelClearedOverlay();
+        clearCrimeSceneTransientTimeouts();
         goToScene(SCENE_NAMES.CRIME_SCENE);
         setCrimeMode(true);
         setUiTransitioning(true, 820);
@@ -13432,6 +13440,7 @@
         setUiTransitioning(true, 720);
         setCrimeMode(false);
         closeCrimeScenePauseMenu(false);
+        clearCrimeSceneTransientTimeouts();
         csDialogPaused = false;
         clearCsEvidenceAutoAdvance();
         clearCsIntroAutoAdvance();
@@ -13595,6 +13604,7 @@
 
     function showLevelCleared() {
         hideLevelClearedOverlay();
+        clearCrimeSceneTransientTimeouts();
         goToScene(SCENE_NAMES.LEVEL_CLEARED);
         stopCsTimer();
         if (caseRun) caseRun.investigationTime = Math.max(caseRun.investigationTime || 0, csInvestigationTime || 0);
@@ -13694,6 +13704,25 @@
             clearTimeout(csDialogueCompactResetId);
             csDialogueCompactResetId = null;
         }
+    }
+
+    function clearCrimeSceneTransientTimeouts() {
+        if (csWrongFeedbackTimeoutId !== null) {
+            clearTimeout(csWrongFeedbackTimeoutId);
+            csWrongFeedbackTimeoutId = null;
+        }
+        if (csCorrectFeedbackTimeoutId !== null) {
+            clearTimeout(csCorrectFeedbackTimeoutId);
+            csCorrectFeedbackTimeoutId = null;
+        }
+        if (csLevelClearedTimeoutId !== null) {
+            clearTimeout(csLevelClearedTimeoutId);
+            csLevelClearedTimeoutId = null;
+        }
+        csWrongBusy = false;
+        csFeedbackBusy = false;
+        if (csWrongOverlay) csWrongOverlay.classList.remove('cs-wrong-active', 'cs-correct-active');
+        syncCsChatLock();
     }
 
     function clearCsDialogueInlineOverrides() {
@@ -14015,7 +14044,14 @@
         showCsCorrectFeedback(item);
       
         if (csCollected.size >= crimeSceneTotal) {
-            setTimeout(() => {
+            const scheduledCaseId = getActiveCaseId();
+            if (csLevelClearedTimeoutId !== null) {
+                clearTimeout(csLevelClearedTimeoutId);
+                csLevelClearedTimeoutId = null;
+            }
+            csLevelClearedTimeoutId = setTimeout(() => {
+                csLevelClearedTimeoutId = null;
+                if (!csActive || getActiveCaseId() !== scheduledCaseId) return;
                 if (caseRun && caseRun.caseId === 'bad-blood' && !caseRun.babachang_puzzle_solved) {
                     showBabachangSlidePuzzle();
                 } else {
@@ -14049,7 +14085,14 @@
         csWrongOverlay.classList.remove('cs-correct-active', 'cs-wrong-active');
         void csWrongOverlay.offsetWidth;
         csWrongOverlay.classList.add('cs-wrong-active');
-        setTimeout(() => {
+        const scheduledCaseId = getActiveCaseId();
+        if (csWrongFeedbackTimeoutId !== null) {
+            clearTimeout(csWrongFeedbackTimeoutId);
+            csWrongFeedbackTimeoutId = null;
+        }
+        csWrongFeedbackTimeoutId = setTimeout(() => {
+            csWrongFeedbackTimeoutId = null;
+            if (getActiveCaseId() !== scheduledCaseId) return;
             csWrongOverlay.classList.remove('cs-wrong-active');
             csWrongBusy = false;
         }, 2000);
@@ -14065,7 +14108,14 @@
         csWrongOverlay.classList.remove('cs-wrong-active', 'cs-correct-active');
         void csWrongOverlay.offsetWidth;
         csWrongOverlay.classList.add('cs-correct-active');
-        setTimeout(() => {
+        const scheduledCaseId = getActiveCaseId();
+        if (csCorrectFeedbackTimeoutId !== null) {
+            clearTimeout(csCorrectFeedbackTimeoutId);
+            csCorrectFeedbackTimeoutId = null;
+        }
+        csCorrectFeedbackTimeoutId = setTimeout(() => {
+            csCorrectFeedbackTimeoutId = null;
+            if (!csActive || getActiveCaseId() !== scheduledCaseId) return;
             csWrongOverlay.classList.remove('cs-correct-active');
             csFeedbackBusy = false;
             syncCsChatLock();
