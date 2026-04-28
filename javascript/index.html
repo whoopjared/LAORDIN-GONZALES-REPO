@@ -103,6 +103,99 @@
             background-size: 200px 200px;
         }
 
+        /* ── Game Intro Splash ── */
+        #intro-splash {
+            position: absolute;
+            inset: 0;
+            z-index: 60000;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            opacity: 1;
+            transition: opacity 1s ease;
+            pointer-events: all;
+        }
+        #intro-splash.intro-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #intro-splash-logo {
+            width: clamp(100px, 18vw, 180px);
+            opacity: 0;
+            transform: scale(0.7);
+            filter: brightness(0);
+            transition: opacity 1.2s ease, transform 1.2s ease, filter 1.5s ease;
+        }
+        #intro-splash.step-logo #intro-splash-logo {
+            opacity: 1;
+            transform: scale(1);
+            filter: brightness(1);
+        }
+        #intro-splash-title {
+            margin-top: 1.2em;
+            font-family: Bahnschrift, system-ui, -apple-system, Segoe UI, Arial;
+            font-weight: 900;
+            font-size: clamp(1.6rem, 4vw, 3.2rem);
+            letter-spacing: 0.32em;
+            text-transform: uppercase;
+            color: white;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.9s ease 0.3s, transform 0.9s ease 0.3s;
+        }
+        #intro-splash.step-title #intro-splash-title {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #intro-splash-sub {
+            margin-top: 0.55em;
+            font-family: system-ui, -apple-system, Segoe UI, Arial;
+            font-weight: 600;
+            font-size: clamp(0.65rem, 1.2vw, 0.9rem);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.35);
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.8s ease 0.2s, transform 0.8s ease 0.2s;
+        }
+        #intro-splash.step-title #intro-splash-sub {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #intro-splash-line {
+            margin-top: 1.8em;
+            width: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: width 1.2s ease;
+        }
+        #intro-splash.step-title #intro-splash-line {
+            width: min(320px, 60vw);
+        }
+        #intro-splash-prompt {
+            margin-top: 1.6em;
+            font-family: system-ui, -apple-system, Segoe UI, Arial;
+            font-weight: 600;
+            font-size: clamp(0.6rem, 1vw, 0.78rem);
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.3);
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            animation: intro-pulse 2.2s ease-in-out infinite;
+        }
+        #intro-splash.step-prompt #intro-splash-prompt {
+            opacity: 1;
+        }
+        @keyframes intro-pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
         /* ── Banner Slideshow ── */
         #banner-container {
             position: absolute;
@@ -5406,6 +5499,13 @@
 
 
 <div id="game" class="mode-home">
+    <div id="intro-splash">
+        <img id="intro-splash-logo" src="../images/logo/logo.png" alt="After Hours" draggable="false">
+        <div id="intro-splash-title">After Hours</div>
+        <div id="intro-splash-sub">A Detective Puzzle Game</div>
+        <div id="intro-splash-line"></div>
+        <div id="intro-splash-prompt">Click anywhere to continue</div>
+    </div>
     <div id="banner-container"></div>
     <canvas id="particles"></canvas>
     <div id="right-vignette"></div>
@@ -5422,6 +5522,7 @@
     <audio id="sfx-typing" src="../audios/typing.mp3" preload="auto" loop></audio>
     <audio id="sfx-police-siren" src="../audios/police-siren.mp3" preload="auto"></audio>
     <audio id="jared-case-outro" src="../audios/theme/jared-case-outro.mp3" preload="auto"></audio>
+    <audio id="intro-song" src="../audios/theme/intro-song.mp3" preload="auto" loop></audio>
 
     <div id="menu-buttons">
         <img id="logo-text" src="../images/logo/logo-text.png" alt="Logo Text">
@@ -6002,6 +6103,76 @@
     }
     resize();
     resizeParticles();
+
+    // ── Intro Splash Sequence ──
+    (function initIntroSplash() {
+        const splash = document.getElementById('intro-splash');
+        if (!splash) return;
+
+        const introAudio = document.getElementById('intro-song');
+        let introDismissed = false;
+
+        // Start intro song at low volume on first interaction with the splash
+        function tryPlayIntroSong() {
+            if (!introAudio || introAudio._started) return;
+            introAudio._started = true;
+            introAudio.volume = 0.18;
+            introAudio.muted = !!(prefs && prefs.muted);
+            introAudio.play().catch(() => {});
+        }
+
+        // Step 1: logo fades in after a short beat
+        setTimeout(() => { splash.classList.add('step-logo'); }, 300);
+
+        // Step 2: title + subtitle + line slide in
+        setTimeout(() => { splash.classList.add('step-title'); }, 1400);
+
+        // Step 3: "click to continue" prompt pulses in
+        setTimeout(() => { splash.classList.add('step-prompt'); }, 2800);
+
+        // Fade out intro song smoothly
+        function fadeOutIntroSong(durationMs, cb) {
+            if (!introAudio || introAudio.paused) { if (cb) cb(); return; }
+            const startVol = introAudio.volume;
+            const t0 = performance.now();
+            function step(now) {
+                const p = Math.min(1, (now - t0) / durationMs);
+                introAudio.volume = Math.max(0, startVol * (1 - p));
+                if (p < 1) { requestAnimationFrame(step); return; }
+                introAudio.pause();
+                try { introAudio.currentTime = 0; } catch (e) {}
+                if (cb) cb();
+            }
+            requestAnimationFrame(step);
+        }
+
+        function dismissIntro() {
+            if (introDismissed) return;
+            introDismissed = true;
+            introSplashDismissed = true;
+            splash.classList.add('intro-hidden');
+            // Fade out intro song, then start main menu BGM
+            fadeOutIntroSong(900, () => { startBgm(); });
+            // Clean up after fade-out transition
+            setTimeout(() => {
+                if (splash.parentElement) splash.parentElement.removeChild(splash);
+            }, 1200);
+        }
+
+        function onSplashInteract() {
+            // First interaction starts the intro music
+            if (!introAudio || !introAudio._started) {
+                tryPlayIntroSong();
+            }
+            // Only dismiss once the "click to continue" prompt is visible
+            if (splash.classList.contains('step-prompt')) {
+                dismissIntro();
+            }
+        }
+
+        splash.addEventListener('click', onSplashInteract);
+        splash.addEventListener('touchstart', onSplashInteract, { passive: true });
+    })();
 
     // Floating dust particles
     const PARTICLE_COUNT = 40;
@@ -6600,6 +6771,14 @@
 
     function syncBgmToPageState(forcePlay = false) {
         if (!bgm) return;
+        // While intro splash is active, resume intro song instead of BGM
+        if (!introSplashDismissed) {
+            const introSong = document.getElementById('intro-song');
+            if (introSong && introSong._started && canOwnAudioFocus() && introSong.paused) {
+                try { introSong.play().catch(() => {}); } catch (e) {}
+            }
+            return;
+        }
         if (!bgmPlayOk) {
             updateMediaSessionState();
             return;
@@ -6641,6 +6820,8 @@
     function hardStopPageAudio() {
         if (bgm) bgm.pause();
         if (caseOutroAudio) caseOutroAudio.pause();
+        const introSong = document.getElementById('intro-song');
+        if (introSong) { try { introSong.pause(); } catch (e) {} }
         if (sfxTyping) {
             try { sfxTyping.pause(); } catch (e) { /* ignore */ }
             try { sfxTyping.currentTime = 0; } catch (e) { /* ignore */ }
@@ -6708,8 +6889,11 @@
     }
     installMediaSessionGuards();
 
+    let introSplashDismissed = false;
+
     async function startBgm() {
         if (!bgm || !canOwnAudioFocus()) return;
+        if (!introSplashDismissed) return;
         const effectiveMusicVol = clamp01(prefs.volume) * clamp01(prefs.musicVolume);
         if (prefs.muted || effectiveMusicVol <= 0.0001) {
             try { bgm.volume = 0; } catch (e) { /* ignore */ }
@@ -6739,7 +6923,7 @@
     }
 
     /* Try immediately; if autoplay policy blocks audio, pointer/key will call startBgm again. */
-    startBgm();
+    /* BGM is gated behind intro splash dismissal — don't auto-start here. */
     window.addEventListener('pointerdown', () => { startBgm(); }, { passive: true });
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ' || e.code === 'MediaPlayPause' || e.key === 'MediaPlayPause') {
