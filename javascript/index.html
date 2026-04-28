@@ -10460,6 +10460,10 @@
             }
 
             const onOverlayBgClick = (e) => { if (e && e.target === overlay) advance(e); };
+            const onDialogueAdvance = (e) => {
+                if (!overlay || !overlay.isConnected) return;
+                advance(e);
+            };
 
             const advance = (e) => {
                 if (e) { e.preventDefault(); e.stopPropagation(); }
@@ -10476,7 +10480,7 @@
             const closeAll = () => {
                 if (autoId) { clearTimeout(autoId); autoId = null; }
                 if (csDialogueEl) {
-                    try { csDialogueEl.removeEventListener('click', advance, true); } catch (e) { /* ignore */ }
+                    try { csDialogueEl.removeEventListener('click', onDialogueAdvance, true); } catch (e) { /* ignore */ }
                 }
                 try { overlay.removeEventListener('click', onOverlayBgClick); } catch (e) { /* ignore */ }
                 try { hideCsDialogue(true); } catch (e) { /* ignore */ }
@@ -10505,10 +10509,7 @@
                 closeAll();
             });
 
-            if (csDialogueEl) csDialogueEl.addEventListener('click', (e) => {
-                if (!overlay || !overlay.isConnected) return;
-                advance(e);
-            }, true);
+            if (csDialogueEl) csDialogueEl.addEventListener('click', onDialogueAdvance, true);
             overlay.addEventListener('click', onOverlayBgClick);
 
             setLine(0);
@@ -11712,9 +11713,21 @@
         overlay._wirePuzzleCleanup = cleanup;
     }
     //"Babachang Slide Puzzle: 3×3 tile-sliding puzzle shown after collecting all Jared-case evidence."
-    function showBabachangSlidePuzzle() {
+    let babachangOverlayCleanup = null;
+
+    function cleanupBabachangOverlay() {
+        if (typeof babachangOverlayCleanup === 'function') {
+            const cleanup = babachangOverlayCleanup;
+            babachangOverlayCleanup = null;
+            try { cleanup(); } catch (e) { /* ignore */ }
+            return;
+        }
         const existing = document.getElementById('babachang-slide-overlay');
         if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
+    }
+
+    function showBabachangSlidePuzzle() {
+        cleanupBabachangOverlay();
 
         const COLS = 3, ROWS = 3, TOTAL = COLS * ROWS;
         const src = '../images/jared-case-images/items/babachang-slide-full.png';
@@ -11779,6 +11792,16 @@
                 else csDialoguePrev.parent.appendChild(csDialogueEl);
             } catch (e) { /* ignore */ }
         }
+
+        const cleanupOverlay = () => {
+            if (csDialogueEl) {
+                try { csDialogueEl.removeEventListener('click', onDialogueTap, true); } catch (e) { /* ignore */ }
+            }
+            try { hideCsDialogue(true); } catch (e) { /* ignore */ }
+            restoreCsDialogue();
+            if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
+            if (babachangOverlayCleanup === cleanupOverlay) babachangOverlayCleanup = null;
+        };
 
         // Shuffle tiles ensuring it's not already solved.
         function fisherYates(arr) {
@@ -11903,15 +11926,17 @@
 
         const onDialogueTap = (e) => {
             if (e) { e.preventDefault(); e.stopPropagation(); }
+            if (!caseRun || caseRun.caseId !== 'bad-blood') {
+                cleanupOverlay();
+                return;
+            }
             if (!dialogueLines.length) return;
             if (csDialogueText && finishTypingNow(csDialogueText)) return;
             playClickSfx();
             dialogueIdx += 1;
             if (dialogueIdx >= dialogueLines.length) {
                 if (caseRun) caseRun.babachang_puzzle_solved = true;
-                try { hideCsDialogue(true); } catch (err) { /* ignore */ }
-                restoreCsDialogue();
-                if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
+                cleanupOverlay();
                 showLevelCleared();
                 return;
             }
@@ -11922,6 +11947,8 @@
         if (csDialogueEl) {
             csDialogueEl.addEventListener('click', onDialogueTap, true);
         }
+
+        babachangOverlayCleanup = cleanupOverlay;
 
         render();
         if (gameEl) gameEl.appendChild(overlay);
@@ -13719,6 +13746,7 @@
             clearTimeout(csLevelClearedTimeoutId);
             csLevelClearedTimeoutId = null;
         }
+        cleanupBabachangOverlay();
         csWrongBusy = false;
         csFeedbackBusy = false;
         if (csWrongOverlay) csWrongOverlay.classList.remove('cs-wrong-active', 'cs-correct-active');
