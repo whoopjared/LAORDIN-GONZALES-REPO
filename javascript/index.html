@@ -6125,10 +6125,10 @@
         setTimeout(() => { splash.classList.add('step-logo'); }, 300);
 
         // Step 2: title + subtitle + line slide in
-        setTimeout(() => { splash.classList.add('step-title'); }, 1400);
+        setTimeout(() => { splash.classList.add('step-title'); }, 1200);
 
         // Step 3: "click to continue" prompt pulses in
-        setTimeout(() => { splash.classList.add('step-prompt'); }, 2800);
+        setTimeout(() => { splash.classList.add('step-prompt'); }, 2200);
 
         // Fade out intro song smoothly
         function fadeOutIntroSong(durationMs, cb) {
@@ -6160,14 +6160,13 @@
         }
 
         function onSplashInteract() {
-            // First interaction starts the intro music
-            if (!introAudio || !introAudio._started) {
+            // First click: start the intro music, never dismiss on the same click
+            if (!introAudio._started) {
                 tryPlayIntroSong();
+                return;
             }
-            // Only dismiss once the "click to continue" prompt is visible
-            if (splash.classList.contains('step-prompt')) {
-                dismissIntro();
-            }
+            // Second click: dismiss the splash
+            dismissIntro();
         }
 
         splash.addEventListener('click', onSplashInteract);
@@ -8947,6 +8946,8 @@
     }
 
     function hideOfficeScene(cb) {
+        if (!officeActive) return;
+        officeActive = false;
         setUiTransitioning(true, 780);
         clearAutoDialogueTimer();
         officeThought.classList.remove('visible');
@@ -8959,7 +8960,6 @@
         officeScreen.classList.remove('active');
         setTimeout(() => {
             officeScreen.style.display = 'none';
-            officeActive = false;
             if (cb) cb();
         }, 750);
     }
@@ -9103,6 +9103,9 @@
             advanceCsEvidenceDialogue(false);
             return;
         }
+
+        // If we're in the crime scene but no dialogue is active, skip does nothing
+        if (csActive && !csIntroActive && !csEvidenceDialogueActive) return;
 
         // ── Office-based dialogues ──
         if (!officeActive) return;
