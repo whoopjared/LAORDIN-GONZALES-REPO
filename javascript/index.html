@@ -5095,6 +5095,27 @@
             fill: currentColor;
             animation: hint-bob 1.2s ease-in-out infinite;
         }
+        .skip-dialogue-btn {
+            background: rgba(255,255,255,0.10);
+            color: rgba(255,255,255,0.72);
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 6px;
+            padding: 0.28em 0.85em;
+            font-family: Bahnschrift, system-ui, -apple-system, Segoe UI, Arial;
+            font-size: 0.78em;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: background 180ms ease, color 180ms ease;
+            line-height: 1.3;
+            white-space: nowrap;
+        }
+        .skip-dialogue-btn:hover {
+            background: rgba(255,255,255,0.18);
+            color: rgba(255,255,255,0.92);
+        }
         .map-box__thumbnail {
             position: absolute;
             inset: 0;
@@ -5553,6 +5574,7 @@
                 <div id="cs-dialogue-name"></div>
                 <div id="cs-dialogue-text"></div>
                 <div id="cs-dialogue-hint">
+                    <button type="button" id="cs-skip-btn" class="skip-dialogue-btn" onclick="event.stopPropagation(); skipDialogue();">SKIP ▸▸</button>
                     <span>Tap to continue</span>
                     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M6.5 1a1 1 0 0 1 2 0v6.5h.5V6a1 1 0 0 1 2 0v2h.5V7a1 1 0 0 1 2 0v4a4.5 4.5 0 0 1-4.5 4.5H8.5A4.5 4.5 0 0 1 4 11V9a1 1 0 0 1 2 0v-1L6.5 1z" fill="currentColor"/></svg>
                 </div>
@@ -5902,6 +5924,7 @@
                     <div id="office-text"></div>
                 </div>
                 <div id="office-hint">
+                    <button type="button" id="office-skip-btn" class="skip-dialogue-btn" onclick="event.stopPropagation(); skipDialogue();">SKIP ▸▸</button>
                     <span>Tap to continue</span>
                     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M6.5 1a1 1 0 0 1 2 0v6.5h.5V6a1 1 0 0 1 2 0v2h.5V7a1 1 0 0 1 2 0v4a4.5 4.5 0 0 1-4.5 4.5H8.5A4.5 4.5 0 0 1 4 11V9a1 1 0 0 1 2 0v-1L6.5 1z" fill="currentColor"/></svg>
                 </div>
@@ -8072,6 +8095,7 @@
             neutral: SUSPECT_PATH + 'forensic-emotes/forensic-neutral-focused.png',
             focused: SUSPECT_PATH + 'forensic-emotes/forensic-neutral-focused.png',
             serious: SUSPECT_PATH + 'forensic-emotes/forensic-neutral-focused.png',
+            concerned: SUSPECT_PATH + 'forensic-emotes/forensic-concerned.png',
         },
         mikael: {
             default: SUSPECT_PATH + 'mikael.png',
@@ -8870,6 +8894,87 @@
         }
         playClickSfx();
         _showOfficeLine();
+    }
+
+    function skipDialogue() {
+        playClickSfx();
+        finishTypingNow(officeText);
+        clearAutoDialogueTimer();
+
+        finishTypingNow(csDialogueText);
+        clearCsIntroAutoAdvance();
+        clearCsEvidenceAutoAdvance();
+
+        // ── Crime scene intro dialogue ──
+        if (csIntroActive) {
+            csIntroIndex = crimeSceneScript.length - 1;
+            advanceCrimeSceneIntro(false);
+            return;
+        }
+
+        // ── Crime scene evidence dialogue ──
+        if (csEvidenceDialogueActive) {
+            const evScript = crimeSceneEvidenceDialogue[csEvidenceDialogueId] || [];
+            csEvidenceLineIdx = evScript.length - 1;
+            advanceCsEvidenceDialogue(false);
+            return;
+        }
+
+        // ── Office-based dialogues ──
+        if (!officeActive) return;
+
+        if (currentScene === SCENE_NAMES.POST_OFFICE) {
+            if (chrisPuzzleExtraActive) {
+                chrisPuzzleExtraIdx = chrisPuzzleExtraLines.length - 1;
+                advancePostOffice();
+                return;
+            }
+            const poScript = getPostOfficeScriptForCase((caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood');
+            // Find next action line (puzzle) — land ON it so advancePostOffice() triggers it
+            let nextAction = -1;
+            for (let i = postOfficeIdx + 1; i < poScript.length; i++) {
+                if (poScript[i] && poScript[i].action) { nextAction = i; break; }
+            }
+            if (nextAction >= 0) {
+                postOfficeIdx = nextAction;
+                advancePostOffice();
+            } else {
+                postOfficeIdx = poScript.length - 1;
+                advancePostOffice();
+            }
+            return;
+        }
+
+        if (currentScene === SCENE_NAMES.INTERROGATION) {
+            const intScript = INTERROGATION_SCRIPTS[interrogationSuspect] || [];
+            interrogationIdx = intScript.length - 1;
+            advanceInterrogation();
+            return;
+        }
+
+        if (currentScene === SCENE_NAMES.PROFILING) {
+            profilingIdx = PROFILING_SCRIPT.length - 1;
+            advanceProfiling();
+            return;
+        }
+
+        if (currentScene === SCENE_NAMES.CASE_CLOSED_OUTRO) {
+            const outroScript = getCaseClosedOutroScript((caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood');
+            caseClosedOutroIdx = outroScript.length - 1;
+            advanceCaseClosedOutro();
+            return;
+        }
+
+        if (currentScene === SCENE_NAMES.CHRIS_POST_MATTHEW) {
+            chrisPostMatthewIdx = CHRIS_POST_MATTHEW_SCRIPT.length - 1;
+            advanceChrisPostMatthewDialogue();
+            return;
+        }
+
+        // ── Office briefing (default) ──
+        const briefScript = getOfficeScriptForCase((caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood');
+        officeLineIdx = briefScript.length - 1;
+        advanceOffice();
     }
 
     const CHRIS_POST_MATTHEW_SCRIPT = [
@@ -10940,7 +11045,12 @@
         });
 
         panelHeader.appendChild(panelTitleWrap);
-        panelHeader.appendChild(closeBtn);
+        // Hide close button for Jared (bad-blood) crime-scene wire puzzle — closing
+        // without solving causes a stuck game because the puzzle is triggered from a
+        // one-shot intro with no re-entry path. Chris post-office re-gates on next click.
+        const wireCaseId = (caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood';
+        const isJaredCrimeSceneWire = wireCaseId === 'bad-blood' && currentScene === SCENE_NAMES.CRIME_SCENE;
+        if (!isJaredCrimeSceneWire) panelHeader.appendChild(closeBtn);
 
         const board = document.createElement('div');
         board.style.position = 'relative';
@@ -11214,20 +11324,11 @@
                 setTimeout(finishClose, 260);
             };
 
-            // Allow continuing by clicking either the dialogue bubble OR anywhere
-            // on the overlay. This makes the post-solve transition reliable even
-            // if the dialogue bubble is obscured or the user clicks the panel.
             if (csDialogueEl) {
                 csDialogueEl.addEventListener('click', continueHandler, { capture: true, once: true });
+            } else {
+                overlay.addEventListener('click', continueHandler, { once: true });
             }
-            overlay.addEventListener('click', continueHandler, { once: true });
-
-            // Safety net: auto-continue shortly after solve so countdown always starts.
-            setTimeout(() => {
-                if (!solved) return;
-                if (!document.getElementById('wire-puzzle-overlay')) return;
-                continueHandler();
-            }, 1200);
         }
 
         function tryMatchDrop(colorId, x, y) {
@@ -11377,104 +11478,38 @@
         const existing = document.getElementById('babachang-slide-overlay');
         if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
 
+        const COLS = 3, ROWS = 3, TOTAL = COLS * ROWS;
+        const src = '../images/jared-case-images/items/babachang-slide-full.png';
+
         const overlay = document.createElement('div');
         overlay.id = 'babachang-slide-overlay';
-        overlay.style.position = 'absolute';
-        overlay.style.inset = '0';
-        overlay.style.zIndex = '50040';
-        overlay.style.background = 'rgba(0,0,0,0.88)';
-        overlay.style.backdropFilter = 'blur(8px)';
-        overlay.style.display = 'flex';
-        overlay.style.flexDirection = 'column';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'flex-start';
-        overlay.style.padding = '3.2rem 1.25rem 1.75rem';
-        overlay.style.userSelect = 'none';
-        overlay.style.touchAction = 'none';
+        overlay.style.cssText = 'position:absolute;inset:0;z-index:50040;background:rgba(0,0,0,0.88);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:2.4rem 1.25rem 1.75rem;user-select:none;touch-action:none;overflow-y:auto;';
 
         const title = document.createElement('div');
         title.textContent = 'RECONSTRUCT THE IMAGE';
-        title.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
-        title.style.fontWeight = '900';
-        title.style.letterSpacing = '0.22em';
-        title.style.textTransform = 'uppercase';
-        title.style.color = 'white';
-        title.style.textAlign = 'center';
-        title.style.fontSize = 'clamp(1.4rem, 3.1vw, 2.1rem)';
+        title.style.cssText = 'font-family:Bahnschrift,system-ui,-apple-system,Segoe UI,Arial;font-weight:900;letter-spacing:0.22em;text-transform:uppercase;color:white;text-align:center;font-size:clamp(1.3rem,3vw,2rem);';
 
         const sub = document.createElement('div');
-        sub.textContent = 'Slide the strips to align the photograph';
-        sub.style.marginTop = '0.55rem';
-        sub.style.color = 'rgba(255,255,255,0.55)';
-        sub.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Arial';
-        sub.style.fontWeight = '600';
-        sub.style.letterSpacing = '0.06em';
-        sub.style.fontSize = '0.92rem';
-        sub.style.textAlign = 'center';
+        sub.textContent = 'Tap two tiles to swap them into the correct position';
+        sub.style.cssText = 'margin-top:0.45rem;color:rgba(255,255,255,0.55);font-family:system-ui,-apple-system,Segoe UI,Arial;font-weight:600;letter-spacing:0.06em;font-size:0.88rem;text-align:center;';
+
+        const moveCounter = document.createElement('div');
+        moveCounter.style.cssText = 'margin-top:0.6rem;color:rgba(255,255,255,0.7);font-family:Bahnschrift,system-ui;font-weight:700;font-size:0.82rem;letter-spacing:0.16em;text-transform:uppercase;';
+        moveCounter.textContent = 'MOVES: 0';
 
         overlay.appendChild(title);
         overlay.appendChild(sub);
+        overlay.appendChild(moveCounter);
 
-        const puzzleWrap = document.createElement('div');
-        puzzleWrap.style.position = 'relative';
-        puzzleWrap.style.marginTop = '1.6rem';
-        puzzleWrap.style.width = 'min(820px, 92%)';
-        puzzleWrap.style.userSelect = 'none';
-        puzzleWrap.style.touchAction = 'none';
-
-        const stripH = 'clamp(150px, 18vw, 210px)';
-        puzzleWrap.style.display = 'flex';
-        puzzleWrap.style.flexDirection = 'column';
-        puzzleWrap.style.gap = '0.75rem';
+        const gridWrap = document.createElement('div');
+        gridWrap.style.cssText = 'position:relative;margin-top:1.2rem;width:min(520px,88vw);aspect-ratio:1/1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:4px;border-radius:14px;overflow:hidden;border:2px solid rgba(255,255,255,0.12);box-shadow:0 22px 70px rgba(0,0,0,0.6);';
 
         const badge = document.createElement('div');
         badge.textContent = 'RECONSTRUCTED ✓';
-        badge.style.position = 'absolute';
-        badge.style.left = '50%';
-        badge.style.top = '50%';
-        badge.style.transform = 'translate(-50%, -50%)';
-        badge.style.padding = '0.5em 1.2em';
-        badge.style.background = 'rgba(46,204,113,0.9)';
-        badge.style.borderRadius = '999px';
-        badge.style.color = 'white';
-        badge.style.fontWeight = '800';
-        badge.style.letterSpacing = '0.18em';
-        badge.style.textTransform = 'uppercase';
-        badge.style.fontFamily = 'Bahnschrift, system-ui, -apple-system, Segoe UI, Arial';
-        badge.style.display = 'none';
-        badge.style.pointerEvents = 'none';
-        badge.style.boxShadow = '0 12px 40px rgba(0,0,0,0.55)';
-        puzzleWrap.appendChild(badge);
-
-        const src = '../images/jared-case-images/items/babachang-slide-full.png';
-        const target = [0, 1, 2];
-
-        function fisherYates(arr) {
-            for (let i = arr.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                const t = arr[i];
-                arr[i] = arr[j];
-                arr[j] = t;
-            }
-            return arr;
-        }
-
-        let stripOrder = fisherYates([0, 1, 2]);
-        while (stripOrder[0] === 0 && stripOrder[1] === 1 && stripOrder[2] === 2) {
-            stripOrder = fisherYates([0, 1, 2]);
-        }
-
-        let solved = false;
-        let dialogueLines = [];
-        let dialogueIdx = 0;
+        badge.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:0.55em 1.4em;background:rgba(46,204,113,0.92);border-radius:999px;color:white;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;font-family:Bahnschrift,system-ui;display:none;pointer-events:none;box-shadow:0 14px 50px rgba(0,0,0,0.6);z-index:5;font-size:clamp(0.8rem,1.8vw,1.05rem);';
 
         const footer = document.createElement('div');
-        footer.style.width = 'min(520px, 92vw)';
-        footer.style.marginTop = '1.35rem';
-        footer.style.display = 'flex';
-        footer.style.flexDirection = 'column';
-        footer.style.alignItems = 'center';
-        footer.style.gap = '0.9rem';
+        footer.style.cssText = 'width:min(520px,92vw);margin-top:1.1rem;display:flex;flex-direction:column;align-items:center;gap:0.9rem;';
 
         const continueBtn = document.createElement('button');
         continueBtn.type = 'button';
@@ -11485,10 +11520,10 @@
         continueBtn.style.display = 'none';
 
         footer.appendChild(continueBtn);
-        overlay.appendChild(puzzleWrap);
+        overlay.appendChild(gridWrap);
         overlay.appendChild(footer);
-        
-        // Reuse the existing crime-scene dialogue UI for Jared lines (no custom bubble).
+
+        // Reuse the existing crime-scene dialogue UI for Jared lines.
         const csDialogueEl = document.getElementById('cs-dialogue');
         const csDialoguePrev = csDialogueEl ? {
             parent: csDialogueEl.parentElement,
@@ -11507,174 +11542,93 @@
             } catch (e) { /* ignore */ }
         }
 
-        function deepEq(a, b) {
-            return a.length === b.length && a.every((v, i) => v === b[i]);
+        // Shuffle tiles ensuring it's not already solved.
+        function fisherYates(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+            }
+            return arr;
         }
+        let tileOrder = fisherYates(Array.from({ length: TOTAL }, (_, i) => i));
+        while (tileOrder.every((v, i) => v === i)) tileOrder = fisherYates(Array.from({ length: TOTAL }, (_, i) => i));
 
-        function segmentPos(segIdx) {
-            if (segIdx === 0) return '0% 0%';
-            if (segIdx === 1) return '0% 50%';
-            return '0% 100%';
+        let solved = false;
+        let selectedIdx = -1;
+        let moves = 0;
+        let dialogueLines = [];
+        let dialogueIdx = 0;
+
+        function tilePos(tileId) {
+            const col = tileId % COLS;
+            const row = Math.floor(tileId / COLS);
+            return { x: (col / COLS) * 100, y: (row / ROWS) * 100 };
         }
-
-        // Drag-to-reorder strips (slideable)
-        let dragActive = false;
-        let dragPointerId = null;
-        let dragFromIdx = -1;
-        let dragOverIdx = -1;
-        let dragGhost = null;
-        let dragStartClientY = 0;
 
         function checkSolved() {
             if (solved) return;
-            if (deepEq(stripOrder, target)) {
-                solved = true;
-                playOneShotSfx(sfxCsCorrect);
-                badge.style.display = 'block';
-                continueBtn.style.display = 'inline-flex';
-            }
+            if (!tileOrder.every((v, i) => v === i)) return;
+            solved = true;
+            playOneShotSfx(sfxCsCorrect);
+            badge.style.display = 'block';
+            continueBtn.style.display = 'inline-flex';
+            continueBtn.disabled = false;
+            selectedIdx = -1;
+            render();
         }
 
         function render() {
-            puzzleWrap.innerHTML = '';
-            puzzleWrap.appendChild(badge);
+            gridWrap.innerHTML = '';
+            gridWrap.appendChild(badge);
 
-            stripOrder.forEach((seg, slotIdx) => {
-                const strip = document.createElement('div');
-                strip.dataset.slotIdx = String(slotIdx);
-                strip.style.position = 'relative';
-                strip.style.height = stripH;
-                strip.style.borderRadius = '14px';
-                strip.style.border = '1px solid rgba(255,255,255,0.12)';
-                strip.style.boxShadow = '0 18px 50px rgba(0,0,0,0.52)';
-                strip.style.backgroundImage = 'url("' + src + '")';
-                strip.style.backgroundRepeat = 'no-repeat';
-                strip.style.backgroundSize = '100% 300%';
-                strip.style.backgroundPosition = segmentPos(seg);
-                strip.style.cursor = solved ? 'default' : 'grab';
-                strip.style.touchAction = 'none';
-                strip.style.userSelect = 'none';
-                strip.style.outline = 'none';
+            tileOrder.forEach((tileId, slotIdx) => {
+                const tile = document.createElement('div');
+                const pos = tilePos(tileId);
+                const isCorrect = tileId === slotIdx;
+                tile.style.cssText = 'position:relative;background-image:url("' + src + '");background-size:300% 300%;background-position:' + pos.x + '% ' + pos.y + '%;cursor:' + (solved ? 'default' : 'pointer') + ';transition:transform 180ms ease,box-shadow 180ms ease,outline-color 180ms ease;outline:2px solid transparent;outline-offset:-2px;';
+
+                if (solved) {
+                    tile.style.outline = '2px solid rgba(46,204,113,0.5)';
+                } else if (slotIdx === selectedIdx) {
+                    tile.style.outline = '3px solid rgba(52,152,219,0.9)';
+                    tile.style.transform = 'scale(0.94)';
+                    tile.style.boxShadow = 'inset 0 0 30px rgba(52,152,219,0.3)';
+                } else if (isCorrect) {
+                    tile.style.outline = '2px solid rgba(46,204,113,0.4)';
+                }
 
                 if (!solved) {
-                    strip.addEventListener('pointerdown', (e) => {
+                    tile.addEventListener('click', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        dragActive = true;
-                        dragPointerId = e.pointerId;
-                        dragFromIdx = Number(strip.dataset.slotIdx || 0);
-                        dragOverIdx = dragFromIdx;
-                        dragStartClientY = e.clientY;
-                        strip.setPointerCapture(dragPointerId);
-                        strip.style.cursor = 'grabbing';
-                        strip.style.transform = 'scale(1.01)';
-                        strip.style.boxShadow = '0 22px 70px rgba(0,0,0,0.65)';
-
-                        // Create a floating ghost so the drag feels real (and avoid DOM re-render issues mid-drag).
-                        const rect = strip.getBoundingClientRect();
-                        dragGhost = document.createElement('div');
-                        dragGhost.style.position = 'fixed';
-                        dragGhost.style.left = rect.left + 'px';
-                        dragGhost.style.top = rect.top + 'px';
-                        dragGhost.style.width = rect.width + 'px';
-                        dragGhost.style.height = rect.height + 'px';
-                        dragGhost.style.borderRadius = strip.style.borderRadius;
-                        dragGhost.style.border = strip.style.border;
-                        dragGhost.style.boxShadow = '0 26px 90px rgba(0,0,0,0.65)';
-                        dragGhost.style.backgroundImage = strip.style.backgroundImage;
-                        dragGhost.style.backgroundRepeat = strip.style.backgroundRepeat;
-                        dragGhost.style.backgroundSize = strip.style.backgroundSize;
-                        dragGhost.style.backgroundPosition = strip.style.backgroundPosition;
-                        dragGhost.style.zIndex = '50090';
-                        dragGhost.style.pointerEvents = 'none';
-                        dragGhost.style.transform = 'scale(1.02)';
-                        document.body.appendChild(dragGhost);
-                        strip.style.opacity = '0.35';
+                        if (solved) return;
+                        if (selectedIdx === -1) {
+                            selectedIdx = slotIdx;
+                            playClickSfx();
+                            render();
+                        } else if (selectedIdx === slotIdx) {
+                            selectedIdx = -1;
+                            playClickSfx();
+                            render();
+                        } else {
+                            const a = selectedIdx;
+                            const b = slotIdx;
+                            const tmp = tileOrder[a];
+                            tileOrder[a] = tileOrder[b];
+                            tileOrder[b] = tmp;
+                            selectedIdx = -1;
+                            moves++;
+                            moveCounter.textContent = 'MOVES: ' + moves;
+                            playClickSfx();
+                            render();
+                            checkSolved();
+                        }
                     });
                 }
 
-                puzzleWrap.appendChild(strip);
+                gridWrap.appendChild(tile);
             });
-
-            continueBtn.disabled = !solved;
-            checkSolved();
         }
-
-        function slotIndexFromClientY(clientY) {
-            const r = puzzleWrap.getBoundingClientRect();
-            const h = r.height;
-            const y = Math.max(0, Math.min(h - 1, clientY - r.top));
-            const slot = Math.floor((y / h) * 3);
-            return Math.max(0, Math.min(2, slot));
-        }
-
-        function moveSegment(from, to) {
-            if (from === to) return;
-            const next = stripOrder.slice();
-            const seg = next.splice(from, 1)[0];
-            next.splice(to, 0, seg);
-            stripOrder = next;
-            playClickSfx();
-            render();
-        }
-
-        overlay.addEventListener('pointermove', (e) => {
-            if (!dragActive || solved) return;
-            if (dragPointerId !== null && e.pointerId !== dragPointerId) return;
-            const idx = slotIndexFromClientY(e.clientY);
-            dragOverIdx = idx;
-
-            // Move the ghost with the pointer.
-            if (dragGhost) {
-                const dy = e.clientY - dragStartClientY;
-                dragGhost.style.transform = 'translateY(' + dy + 'px) scale(1.02)';
-            }
-
-            // Highlight the current drop slot.
-            const strips = Array.from(puzzleWrap.children).filter(el => el !== badge);
-            strips.forEach((el, i) => {
-                el.style.outline = (i === idx) ? '2px solid rgba(46,204,113,0.55)' : 'none';
-            });
-            e.preventDefault();
-        });
-
-        overlay.addEventListener('pointerup', (e) => {
-            if (!dragActive) return;
-            if (dragPointerId !== null && e.pointerId !== dragPointerId) return;
-            // Cleanup ghost + reset visuals
-            if (dragGhost && dragGhost.parentElement) dragGhost.parentElement.removeChild(dragGhost);
-            dragGhost = null;
-            const strips = Array.from(puzzleWrap.children).filter(el => el !== badge);
-            strips.forEach(el => { el.style.outline = 'none'; el.style.opacity = ''; el.style.transform = ''; el.style.boxShadow = '0 18px 50px rgba(0,0,0,0.52)'; });
-
-            // Apply one reorder on drop.
-            if (!solved && dragFromIdx >= 0 && dragOverIdx >= 0) {
-                const from = dragFromIdx;
-                const to = dragOverIdx;
-                dragFromIdx = -1;
-                dragOverIdx = -1;
-                dragActive = false;
-                dragPointerId = null;
-                moveSegment(from, to);
-                return;
-            }
-            dragActive = false;
-            dragPointerId = null;
-            dragFromIdx = -1;
-            dragOverIdx = -1;
-            render();
-            e.preventDefault();
-        });
-
-        overlay.addEventListener('pointercancel', () => {
-            if (dragGhost && dragGhost.parentElement) dragGhost.parentElement.removeChild(dragGhost);
-            dragGhost = null;
-            dragActive = false;
-            dragPointerId = null;
-            dragFromIdx = -1;
-            dragOverIdx = -1;
-            render();
-        });
 
         continueBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -11712,7 +11666,6 @@
         const onDialogueTap = (e) => {
             if (e) { e.preventDefault(); e.stopPropagation(); }
             if (!dialogueLines.length) return;
-            // First tap finishes typing if still animating.
             if (csDialogueText && finishTypingNow(csDialogueText)) return;
             playClickSfx();
             dialogueIdx += 1;
@@ -12976,7 +12929,7 @@
         goToScene(SCENE_NAMES.PROFILING);
         profilingIdx = 0;
         officeScreen.style.display = 'block';
-        officeBg.src = '../images/jared-case-images/office/jaredsOffice.png';
+        officeBg.src = getCaseConfig().officeBgSrc;
         const forensicEl = document.getElementById('office-character--forensic');
         if (forensicEl) forensicEl.classList.remove('active');
         const forensicImg = document.getElementById('office-character-forensic-img');
