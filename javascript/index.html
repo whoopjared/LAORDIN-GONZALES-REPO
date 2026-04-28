@@ -9081,6 +9081,11 @@
     }
     //"Skips the active dialogue script to its final line and triggers the corresponding advance function."
     function skipDialogue() {
+        // Block skip while any puzzle overlay is open
+        if (receiptOpen) return;
+        if (document.getElementById('wire-puzzle-overlay')) return;
+        if (document.getElementById('babachang-slide-overlay')) return;
+
         playClickSfx();
         finishTypingNow(officeText);
         clearAutoDialogueTimer();
@@ -9117,6 +9122,13 @@
                 return;
             }
             const poScript = getPostOfficeScriptForCase((caseRun && caseRun.caseId) ? caseRun.caseId : 'bad-blood');
+            // If currently sitting on an unsolved puzzle action, don't skip past it
+            const curLine = poScript[postOfficeIdx];
+            if (curLine && curLine.action) {
+                const isUnsolved = (curLine.action === 'wirePuzzleChris' && caseRun && !caseRun.chrisWirePuzzleSolved)
+                    || (curLine.action === 'receiptPuzzle' && caseRun && !caseRun.receiptPuzzleSolved);
+                if (isUnsolved) return;
+            }
             // Find next action line (puzzle) — land ON it so advancePostOffice() triggers it
             let nextAction = -1;
             for (let i = postOfficeIdx + 1; i < poScript.length; i++) {
@@ -12773,6 +12785,7 @@
 
     function goToPostInvestigationOffice() {
         const screen = document.getElementById('level-cleared-screen');
+        if (!screen || !screen.classList.contains('active')) return;
         screen.classList.remove('active');
         setTimeout(() => { screen.style.display = 'none'; }, 1000);
         hideCrimeScene();
@@ -13376,6 +13389,9 @@
         csRoomImg.classList.add('is-active');
         csProgressCt.textContent = '0';
         if (csMisclickLayer) csMisclickLayer.innerHTML = '';
+        // Clear any leftover level-cleared overlay from a previous case run
+        const lcScreen = document.getElementById('level-cleared-screen');
+        if (lcScreen) { lcScreen.classList.remove('active'); lcScreen.style.display = 'none'; }
         resetCsZoom();
         csScreen.style.display = 'block';
         csScreen.classList.add('cs-intro-active');
