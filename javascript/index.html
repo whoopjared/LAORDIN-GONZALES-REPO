@@ -8908,6 +8908,17 @@
         goToScene(SCENE_NAMES.OFFICE_BRIEFING);
         setCrimeMode(false);
         setUiTransitioning(true, 1080);
+        // Clean up any stale overlays from a previous case run
+        ['level-cleared-screen', 'countdown-overlay', 'babachang-slide-overlay', 'wire-puzzle-overlay',
+         'suspect-selection-screen', 'case-result-screen'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.classList.remove('active'); el.style.display = 'none'; }
+        });
+        const csEl = document.getElementById('crime-scene-screen');
+        if (csEl) { csEl.style.display = 'none'; csEl.classList.remove('cs-active', 'cs-visible', 'cs-intro-active', 'cs-chat-active', 'cs-time-up', 'cs-hud-ready'); }
+        stopCsTimer();
+        csActive = false;
+        caseResultPhase = 'hidden';
         officeLineIdx = 0;
         currentEmoteSrc = '';
         resetOfficeSecondaryCharacterUi();
