@@ -6125,10 +6125,10 @@
         setTimeout(() => { splash.classList.add('step-logo'); }, 300);
 
         // Step 2: title + subtitle + line slide in
-        setTimeout(() => { splash.classList.add('step-title'); }, 1400);
+        setTimeout(() => { splash.classList.add('step-title'); }, 1200);
 
         // Step 3: "click to continue" prompt pulses in
-        setTimeout(() => { splash.classList.add('step-prompt'); }, 2800);
+        setTimeout(() => { splash.classList.add('step-prompt'); }, 2200);
 
         // Fade out intro song smoothly
         function fadeOutIntroSong(durationMs, cb) {
@@ -6160,14 +6160,13 @@
         }
 
         function onSplashInteract() {
-            // First interaction starts the intro music
-            if (!introAudio || !introAudio._started) {
+            // First click: start the intro music, never dismiss on the same click
+            if (!introAudio._started) {
                 tryPlayIntroSong();
+                return;
             }
-            // Only dismiss once the "click to continue" prompt is visible
-            if (splash.classList.contains('step-prompt')) {
-                dismissIntro();
-            }
+            // Second click: dismiss the splash
+            dismissIntro();
         }
 
         splash.addEventListener('click', onSplashInteract);
@@ -8947,6 +8946,8 @@
     }
 
     function hideOfficeScene(cb) {
+        if (!officeActive) return;
+        officeActive = false;
         setUiTransitioning(true, 780);
         clearAutoDialogueTimer();
         officeThought.classList.remove('visible');
@@ -8959,7 +8960,6 @@
         officeScreen.classList.remove('active');
         setTimeout(() => {
             officeScreen.style.display = 'none';
-            officeActive = false;
             if (cb) cb();
         }, 750);
     }
@@ -9103,6 +9103,9 @@
             advanceCsEvidenceDialogue(false);
             return;
         }
+
+        // If we're in the crime scene but no dialogue is active, skip does nothing
+        if (csActive && !csIntroActive && !csEvidenceDialogueActive) return;
 
         // ── Office-based dialogues ──
         if (!officeActive) return;
@@ -9961,13 +9964,6 @@
                 { text: 'I am filing the warrant of arrest right now.', emote: 'determined' }
             ], () => {
                 finalizeMatthewArrestCase();
-                try {
-                    pauseBgmForCaseOutro();
-                    caseOutroAudio.currentTime = 0;
-                    caseOutroAudio.volume = Math.max(0, Math.min(1, prefs.volume));
-                    caseOutroAudio.muted = !!prefs.muted;
-                    caseOutroAudio.play().catch(() => {});
-                } catch (e) { /* ignore */ }
                 setTimeout(() => {
                     showArrestWarrantOverlay(() => {
                         showCaseJailedVisual();
@@ -10381,6 +10377,7 @@
             let autoId = null;
             const lines = [
                 { emote: 'focused', text: 'Someone mapped out a code using colors.' },
+                { emote: 'firm', text: 'Find all the color objects in this room, then the door will automatically get highlighted'},
                 { emote: 'thinking', text: 'Each color in this room matches a number. Find the colored objects — collect them in order.' },
                 { emote: 'firm', text: 'The sequence you collect becomes the digits. Enter that number at the locked door.' },
                 { emote: 'final', text: 'Red = 1. Blue = 2. Green = 3. Stay sharp — order matters.' },
@@ -10673,6 +10670,17 @@
         goToScene(SCENE_NAMES.CASE_RESULT, { caseResultPhase: 'jail-shot' });
         _setCaseResultContent(caseConfig.caseResult.jailedTitle, caseConfig.caseResult.jailedSubtitle, '');
         showCaseResultVisual(caseConfig.caseResult.visualImage, caseConfig.caseResult.visualCaption);
+        // Play outro music when case closed UI is shown (Chris case plays it here;
+        // Jared case already started it earlier in showCaseResult)
+        if (caseOutroAudio && caseOutroAudio.paused && activeCaseId === 'chris-case') {
+            try {
+                pauseBgmForCaseOutro();
+                caseOutroAudio.currentTime = 0;
+                caseOutroAudio.volume = Math.max(0, Math.min(1, prefs.volume));
+                caseOutroAudio.muted = !!prefs.muted;
+                caseOutroAudio.play().catch(() => {});
+            } catch (e) { /* ignore */ }
+        }
         caseJailedShotTimeoutId = setTimeout(() => {
             caseJailedShotTimeoutId = null;
             showCaseClosedMemorial();
