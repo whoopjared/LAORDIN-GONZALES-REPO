@@ -9964,13 +9964,6 @@
                 { text: 'I am filing the warrant of arrest right now.', emote: 'determined' }
             ], () => {
                 finalizeMatthewArrestCase();
-                try {
-                    pauseBgmForCaseOutro();
-                    caseOutroAudio.currentTime = 0;
-                    caseOutroAudio.volume = Math.max(0, Math.min(1, prefs.volume));
-                    caseOutroAudio.muted = !!prefs.muted;
-                    caseOutroAudio.play().catch(() => {});
-                } catch (e) { /* ignore */ }
                 setTimeout(() => {
                     showArrestWarrantOverlay(() => {
                         showCaseJailedVisual();
@@ -10384,6 +10377,7 @@
             let autoId = null;
             const lines = [
                 { emote: 'focused', text: 'Someone mapped out a code using colors.' },
+                { emote: 'firm', text: 'Find all the color objects in this room, then the door will automatically get highlighted'},
                 { emote: 'thinking', text: 'Each color in this room matches a number. Find the colored objects — collect them in order.' },
                 { emote: 'firm', text: 'The sequence you collect becomes the digits. Enter that number at the locked door.' },
                 { emote: 'final', text: 'Red = 1. Blue = 2. Green = 3. Stay sharp — order matters.' },
@@ -10676,6 +10670,17 @@
         goToScene(SCENE_NAMES.CASE_RESULT, { caseResultPhase: 'jail-shot' });
         _setCaseResultContent(caseConfig.caseResult.jailedTitle, caseConfig.caseResult.jailedSubtitle, '');
         showCaseResultVisual(caseConfig.caseResult.visualImage, caseConfig.caseResult.visualCaption);
+        // Play outro music when case closed UI is shown (Chris case plays it here;
+        // Jared case already started it earlier in showCaseResult)
+        if (caseOutroAudio && caseOutroAudio.paused && activeCaseId === 'chris-case') {
+            try {
+                pauseBgmForCaseOutro();
+                caseOutroAudio.currentTime = 0;
+                caseOutroAudio.volume = Math.max(0, Math.min(1, prefs.volume));
+                caseOutroAudio.muted = !!prefs.muted;
+                caseOutroAudio.play().catch(() => {});
+            } catch (e) { /* ignore */ }
+        }
         caseJailedShotTimeoutId = setTimeout(() => {
             caseJailedShotTimeoutId = null;
             showCaseClosedMemorial();
