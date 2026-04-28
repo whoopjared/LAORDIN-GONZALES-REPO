@@ -7951,6 +7951,7 @@
     }
 
     function showMapScreen(inspector) {
+        hideLevelClearedOverlay();
         mapInspector = inspector;
         goToScene(SCENE_NAMES.MAP);
         setCrimeMode(false);
@@ -8106,6 +8107,7 @@
     let activeCaseBox = null;
 
     function showCaseBanner(box) {
+        hideLevelClearedOverlay();
         goToScene(SCENE_NAMES.CASE_BANNER);
         setUiTransitioning(true, 860);
         bannerToOfficeTransitioning = false;
@@ -8492,6 +8494,7 @@
     let lastCaseSummary = null;
     const runtimeTutorialSeenByInspector = { jared: false, chris: false };
     let caseJailedShotTimeoutId = null;
+    let levelClearedHideTimeoutId = null;
 
     function createCaseMilestones() {
         return {
@@ -8563,6 +8566,24 @@
         caseRun = createCaseRun();
         if (inspector) caseRun.inspector = inspector;
         lastCaseSummary = null;
+    }
+
+    function hideLevelClearedOverlay(immediate = true) {
+        if (levelClearedHideTimeoutId !== null) {
+            clearTimeout(levelClearedHideTimeoutId);
+            levelClearedHideTimeoutId = null;
+        }
+        const screen = document.getElementById('level-cleared-screen');
+        if (!screen) return;
+        screen.classList.remove('active');
+        if (immediate) {
+            screen.style.display = 'none';
+            return;
+        }
+        levelClearedHideTimeoutId = setTimeout(() => {
+            screen.style.display = 'none';
+            levelClearedHideTimeoutId = null;
+        }, 1000);
     }
 
     function getActiveCaseId() {
@@ -8905,20 +8926,10 @@
     }
 
     function showOfficeScene() {
+        hideLevelClearedOverlay();
         goToScene(SCENE_NAMES.OFFICE_BRIEFING);
         setCrimeMode(false);
         setUiTransitioning(true, 1080);
-        // Clean up any stale overlays from a previous case run
-        ['level-cleared-screen', 'countdown-overlay', 'babachang-slide-overlay', 'wire-puzzle-overlay',
-         'suspect-selection-screen', 'case-result-screen'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) { el.classList.remove('active'); el.style.display = 'none'; }
-        });
-        const csEl = document.getElementById('crime-scene-screen');
-        if (csEl) { csEl.style.display = 'none'; csEl.classList.remove('cs-active', 'cs-visible', 'cs-intro-active', 'cs-chat-active', 'cs-time-up', 'cs-hud-ready'); }
-        stopCsTimer();
-        csActive = false;
-        caseResultPhase = 'hidden';
         officeLineIdx = 0;
         currentEmoteSrc = '';
         resetOfficeSecondaryCharacterUi();
@@ -10554,6 +10565,7 @@
 
         stopCsTimer();
         stopCaseOutroAudio(true);
+        hideLevelClearedOverlay();
         if (caseJailedShotTimeoutId !== null) {
             clearTimeout(caseJailedShotTimeoutId);
             caseJailedShotTimeoutId = null;
@@ -12797,8 +12809,7 @@
     function goToPostInvestigationOffice() {
         const screen = document.getElementById('level-cleared-screen');
         if (!screen || !screen.classList.contains('active')) return;
-        screen.classList.remove('active');
-        setTimeout(() => { screen.style.display = 'none'; }, 1000);
+        hideLevelClearedOverlay(false);
         hideCrimeScene();
         setTimeout(() => {
             showPostInvestigationOffice();
@@ -13358,6 +13369,7 @@
     }
 
     function showCrimeScene() {
+        hideLevelClearedOverlay();
         goToScene(SCENE_NAMES.CRIME_SCENE);
         setCrimeMode(true);
         setUiTransitioning(true, 820);
@@ -13400,9 +13412,6 @@
         csRoomImg.classList.add('is-active');
         csProgressCt.textContent = '0';
         if (csMisclickLayer) csMisclickLayer.innerHTML = '';
-        // Clear any leftover level-cleared overlay from a previous case run
-        const lcScreen = document.getElementById('level-cleared-screen');
-        if (lcScreen) { lcScreen.classList.remove('active'); lcScreen.style.display = 'none'; }
         resetCsZoom();
         csScreen.style.display = 'block';
         csScreen.classList.add('cs-intro-active');
@@ -13585,6 +13594,7 @@
     }
 
     function showLevelCleared() {
+        hideLevelClearedOverlay();
         goToScene(SCENE_NAMES.LEVEL_CLEARED);
         stopCsTimer();
         if (caseRun) caseRun.investigationTime = Math.max(caseRun.investigationTime || 0, csInvestigationTime || 0);
