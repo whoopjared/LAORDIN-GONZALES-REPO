@@ -187,7 +187,22 @@ LAORDIN-GONZALES-REPO/
 
 ## Screenshots
 
-> *Screenshots of the final build to be added here.*
+![Loading Screen](screenshots/ss-1.png)
+![Main Menu](screenshots/ss-2.png)
+![Selection](screenshots/ss-3.png)
+![Map](screenshots/ss-4.png)
+![Case 1 Banner](screenshots/ss-5.png)
+![Minigame 1](screenshots/ss-6.png)
+![Crime Scene 1](screenshots/ss-7.png)
+![Minigame 2](screenshots/ss-8.png)
+![Map 2](screenshots/ss-9.png)
+![Case 2 Banner](screenshots/ss-10.png)
+![Crime Scene 2](screenshots/ss-11.png)
+![Minigame 2](screenshots/ss-12.png)
+![Minigame 3](screenshots/ss-13.png)
+![Receipt](screenshots/ss-14.png)
+![Crime Scene 3](screenshots/ss-15.png)
+
 
 <!-- 
 Add screenshots like this:
