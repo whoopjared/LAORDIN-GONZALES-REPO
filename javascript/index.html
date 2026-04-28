@@ -9035,7 +9035,7 @@
             gateFn: () => officeActive && !postOfficeActive && !interrogationActive && !profilingActive && !caseClosedOutroActive && !chrisPostMatthewActive
         });
     }
-
+    //"Advances office dialogue to next line; routes to sub-handlers (post-office, interrogation, profiling, outro) based on current scene."
     function advanceOffice() {
         // Ignore clicks while office scene is transitioning out / not active,
         // otherwise we can accidentally restart the case flow (briefing + countdown).
@@ -9079,7 +9079,7 @@
         playClickSfx();
         _showOfficeLine();
     }
-
+    //"Skips the active dialogue script to its final line and triggers the corresponding advance function."
     function skipDialogue() {
         playClickSfx();
         finishTypingNow(officeText);
@@ -9781,7 +9781,7 @@
         { id: 'red-object-2', x: 58.8, y: 28.4, w: 1.1, h: 2, type: 'color', color: 'red' },
         { id: 'locked-door', x: 9, y: 11.7, w: 12.2, h: 84.3, type: 'door' },
     ];
-
+    //"Matthew House Scene: interactive room where Chris-case players find color-coded objects, solve a door code, and discover the hidden arson room."
     function startMatthewHouseScene() {
         if (!gameEl) return;
         goToScene(SCENE_NAMES.MATTHEW_HOUSE);
@@ -10658,7 +10658,7 @@
         );
         _showCaseResultOverlay();
     }
-
+    //"Shows the jailed suspect visual card, then auto-transitions to the final memorial screen."
     function showCaseJailedVisual() {
         if (caseJailedShotTimeoutId !== null) {
             clearTimeout(caseJailedShotTimeoutId);
@@ -10956,7 +10956,7 @@
         if (receiptStatus) receiptStatus.textContent = receiptSolved ? ('Card digits found: ' + (caseRun && caseRun.receiptCardLast2 ? caseRun.receiptCardLast2 : '21') + '. Continue.') : 'Complete the receipt to continue.';
         if (receiptDone) receiptDone.disabled = !receiptSolved;
     }
-
+    //"Receipt Puzzle: players drag torn receipt fragments onto a board to reconstruct the receipt and reveal the last 2 card digits."
     function openReceiptPuzzle() {
         if (!receiptOverlay || !receiptBoard || !receiptTray) return;
         receiptOpen = true;
@@ -11100,7 +11100,7 @@
         playClickSfx();
         closeReceiptPuzzle();
     });
-
+    //"Wire Puzzle: players drag colored wires to matching endpoints to restore a circuit. Used in both Jared and Chris cases."
     function showWirePuzzle({ bgDark, bgLit, title, subtitle, onSolved }) {
         const existing = document.getElementById('wire-puzzle-overlay');
         if (existing) {
@@ -11672,7 +11672,7 @@
         };
         overlay._wirePuzzleCleanup = cleanup;
     }
-
+    //"Babachang Slide Puzzle: 3×3 tile-sliding puzzle shown after collecting all Jared-case evidence."
     function showBabachangSlidePuzzle() {
         const existing = document.getElementById('babachang-slide-overlay');
         if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
@@ -13308,7 +13308,7 @@
         renderCaseResultSummary(summary);
         _showCaseResultOverlay();
     }
-
+    // "Displays the case result screen (CASE CLOSED or MISSION FAILED) with rank, stars, and summary."
     function showCaseResult(isCorrect) {
         if (!caseResultScreen || !caseResultTitle || !caseResultSubtitle || !caseResultPrompt) return;
         stopCaseOutroAudio(true);
@@ -13509,7 +13509,7 @@
         updateCsTimerHud();
         if (csTimeLeft <= 0) onCsTimeExpired();
     }
-
+    //"Shows 3-2-1-START countdown overlay, then unpauses the investigation timer and enables evidence clicking."
     function startCountdown() {
         const overlay = document.getElementById('countdown-overlay');
         const text = document.getElementById('countdown-text');
@@ -13798,7 +13798,7 @@
             : 4600
         );
     }
-
+    //"Advances crime scene intro dialogue line-by-line; starts countdown when script ends."
     function advanceCrimeSceneIntro(playSound = true) {
         if (!csIntroActive) return false;
         clearCsIntroAutoAdvance();
@@ -13913,7 +13913,7 @@
     }
 
     // Evidence sting should play once per evidence pickup (collectCsItem already runs once per item).
-
+    //"Renders clickable hitbox overlays on the crime scene image for all evidence and decoy items."
     function renderCrimeSceneHitboxes() {
         csHitboxLayer.innerHTML = '';
         crimeSceneItems.forEach(item => {
@@ -13960,7 +13960,7 @@
             showCsWrongFeedback(item);
         }
     }
-
+    //"Registers a correct evidence click, updates the evidence board and progress counter, triggers level-cleared when all items are found."
     function collectCsItem(item, el) {
         if (csCollected.has(item.id)) return;
         csCollected.add(item.id);
@@ -13976,7 +13976,7 @@
         updateCsObjectiveHint();
         revealCsEvidence(item.id);
         showCsCorrectFeedback(item);
-
+      
         if (csCollected.size >= crimeSceneTotal) {
             setTimeout(() => {
                 if (caseRun && caseRun.caseId === 'bad-blood' && !caseRun.babachang_puzzle_solved) {
