@@ -9777,6 +9777,13 @@
                 { text: 'I am filing the warrant of arrest right now.', emote: 'determined' }
             ], () => {
                 finalizeMatthewArrestCase();
+                try {
+                    pauseBgmForCaseOutro();
+                    caseOutroAudio.currentTime = 0;
+                    caseOutroAudio.volume = Math.max(0, Math.min(1, prefs.volume));
+                    caseOutroAudio.muted = !!prefs.muted;
+                    caseOutroAudio.play().catch(() => {});
+                } catch (e) { /* ignore */ }
                 setTimeout(() => {
                     showArrestWarrantOverlay(() => {
                         showCaseJailedVisual();
@@ -11562,7 +11569,7 @@
         function tilePos(tileId) {
             const col = tileId % COLS;
             const row = Math.floor(tileId / COLS);
-            return { x: (col / COLS) * 100, y: (row / ROWS) * 100 };
+            return { x: col / (COLS - 1) * 100, y: row / (ROWS - 1) * 100 };
         }
 
         function checkSolved() {
