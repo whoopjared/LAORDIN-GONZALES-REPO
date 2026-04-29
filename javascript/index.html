@@ -4368,8 +4368,8 @@
             gap: 0;
             align-items: center;
             text-align: center;
-            opacity: 0;
-            max-height: 0;
+            opacity: 1;
+            max-height: 3em;
             overflow: hidden;
             transition: opacity 0.2s ease, max-height 0.25s ease;
         }
@@ -5769,7 +5769,7 @@
                     <div id="selection-evidence-icons">
                         <div class="selection-evidence-icon-card">
                             <span class="selection-evidence-icon-media"><img src="../images/jared-case-images/items/bloody_handkerchief.png" alt="Bloody handkerchief"></span>
-                            <span class="selection-evidence-icon-label">Bloody Handkerchief</span>
+                            <span class="selection-evidence-icon-label">Bloody Hanky</span>
                         </div>
                         <div class="selection-evidence-icon-card">
                             <span class="selection-evidence-icon-media"><img src="../images/jared-case-images/items/headphones.png" alt="Headphones"></span>
@@ -8727,7 +8727,8 @@
                 0,
                 10
             );
-        const finalScore = clampCaseValue(evidenceScore + forensicsScore + interrogationScore + timeScore + bonusScore, 0, 100);
+        const evidenceMistakePenalty = Math.min(10, wrongEvidenceClicks * 2);
+        const finalScore = clampCaseValue(evidenceScore + forensicsScore + interrogationScore + timeScore + bonusScore - evidenceMistakePenalty, 0, 100);
         const searchAccuracy = clampCaseValue(Math.round((evidenceFoundCount / Math.max(1, totalEvidence)) * 100), 0, 100);
         const forensicsPrecision = clampCaseValue(Math.round((forensicsScore / 20) * 100), 0, 100);
         const interrogationJudgment = clampCaseValue(
@@ -13678,7 +13679,7 @@
 
             const name = document.createElement('div');
             name.className = 'cs-evidence-name';
-            name.textContent = csCollected.has(item.id) ? item.name : '';
+            name.textContent = item.name;
 
             meta.appendChild(name);
             card.appendChild(thumb);
